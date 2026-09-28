@@ -16,13 +16,13 @@ Plain data + `execute`. Provider-agnostic; registered on the client's registry.
 
 <ApiTable
   :rows="[
-    { name: 'name', type: 'string', description: 'Required. Command name without prefix (ping for !ping). Normalized to lowercase. Must match /^[a-z0-9][a-z0-9_-]{0,32}$/ — max 33 chars total.' },
+    { name: 'name', type: 'string', description: 'Required. Command name without prefix (ping for !ping). Matched case-insensitively: the registry key and parsed names are lowercased (definition.name keeps its original casing). Must match /^[a-z0-9][a-z0-9_-]{0,31}$/ — 1-32 chars total.' },
     { name: 'description', type: 'string | undefined', def: 'undefined', description: 'Short help text.' },
     { name: 'aliases', type: 'readonly string[] | undefined', def: 'undefined', description: 'Alternative names; each validated by the same pattern and checked against existing commands/aliases.' },
     { name: 'category', type: 'string | undefined', def: 'undefined', description: 'Grouping label for help listings (e.g. moderation).' },
     { name: 'groupOnly', type: 'boolean', def: 'false', description: 'Only executes in groups; in DMs execution is skipped (listeners still run).' },
     { name: 'dmOnly', type: 'boolean', def: 'false', description: 'Only executes in direct chats.' },
-    { name: 'execute', type: '(interaction: CommandInteraction) =&gt; void | Promise&lt;void&gt;', description: 'Required. Runs when the command matches. Throws surface as ERR_WHATSAPP via the error event.' }
+    { name: 'execute', type: '(interaction: CommandInteraction) =&gt; void | Promise&lt;void&gt;', description: 'Required. Runs when the command matches. Thrown Errors reach the error event unchanged; non-Error values are wrapped as WhatsAppError (ERR_WHATSAPP).' }
   ]"
 />
 
@@ -94,7 +94,7 @@ Lowercases `name`, validates, stores, then registers every alias the same way. R
 | alias fails pattern | `ERR_INVALID_COMMAND_NAME` | `Invalid alias "…" for command "…"`. |
 | alias collides (command or alias) | `ERR_DUPLICATE_COMMAND` | `Alias "…" conflicts with an existing command.` |
 
-Pattern: `/^[a-z0-9][a-z0-9_-]{0,31}$/` (1–33 characters). Registration is **atomic per definition**: name first, then aliases — a failing alias leaves the command itself registered (no rollback).
+Pattern: `/^[a-z0-9][a-z0-9_-]{0,31}$/` (1–32 characters). Registration is **atomic per definition**: name first, then aliases — a failing alias leaves the command itself registered (no rollback).
 
 ### `registerAll`
 
@@ -119,7 +119,7 @@ get(name: string): CommandDefinition | undefined
 has(name: string): boolean
 ```
 
-Exact-name lookup (lowercased) — aliases are **not** resolved here.
+Exact-name lookup (lowercased) for `get` — aliases are **not** resolved. `has` is alias-aware (delegates to `resolve`), so `has("remove")` is `true` for an alias registered as `"remove"`.
 
 ### `resolve`
 
@@ -163,7 +163,7 @@ registry.parse("!Ping  Alice  Bob", ["!", "/"]);
 
 registry.parse("hello", ["!"]);       // null
 registry.parse("!  ", ["!"]);         // null (empty body)
-registry.parse("!!x", ["!"]);         // name "!" fails pattern → null
+registry.parse("!!x", ["!"]);         // token "!x" fails the name pattern → null
 ```
 
 Client-side flow after parsing: matched definition → `groupOnly`/`dmOnly` gate → `execute(interaction)` → always `interactionCreate` listeners. See [Commands guide](/guide/commands).

@@ -44,10 +44,12 @@ interface WhatsAppBackend {
 | --- | --- | --- |
 | identity | `id` | — (required, stable, used in sessions/logs) |
 | lifecycle | `connect` `disconnect` `isConnected` | core cannot work without them |
-| messages | `sendMessage` `downloadMedia` | required; core raises `BackendError` on provider errors |
+| messages | `sendMessage` `downloadMedia` | required; non-`WhatsAppError` throws are wrapped as `BackendError` (`WhatsAppError` subclasses pass through — the bundled adapter reports `MessageError`) |
 | groups read | `getGroupMetadata` | required |
 | events | `on` | required; core subscribes once per client |
-| optional ops | `react` `editMessage` `deleteMessage` `updateGroupParticipants` `updateGroupName` `updateGroupDescription` `requestPairingCode` `logout` | `UnsupportedOperationError` (`ERR_UNSUPPORTED`) from the service, or `ValidationError` for pairing codes |
+| optional ops | `react` `editMessage` `deleteMessage` `updateGroupParticipants` `updateGroupName` `updateGroupDescription` `requestPairingCode` | `UnsupportedOperationError` (`ERR_UNSUPPORTED`) from the service, or `ValidationError` for pairing codes |
+
+Missing `logout` is the exception: `Client.logout()` silently skips the backend revocation when the method is absent (no error).
 
 Capability detection in user code:
 
@@ -203,7 +205,7 @@ class MyBackend implements WhatsAppBackend {
 
 Checklist:
 
-1. emit `connection` `open` **before** `connect()` resolves (the client's first `ready` depends on it);
+1. emit `connection` `open` once the session is usable (the client subscribes to events before calling `connect()`, so `ready` follows as soon as it arrives);
 2. never let provider error classes escape — the services wrap unknown throws via `rethrowAsBackendError`;
 3. classify closes into [`DisconnectReason`](/reference/disconnect-reason) values (fatal ones especially);
 4. persist sessions **only** through the provided `sessionStore` (`Session { provider: id, data }`);

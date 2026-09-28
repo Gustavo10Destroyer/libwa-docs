@@ -130,14 +130,14 @@ client.on("qr", (qr) => console.log(qr)); // render / pipe to a scanner
   ]"
 />
 
-**When:** the backend reports `status: "connecting"` with a `qr` while unauthenticated. Only in QR flows — not emitted when pairing codes are being requested. **Attach before `login()`.**
+**When:** the backend reports `status: "connecting"` with a `qr` while unauthenticated. libwa forwards every QR it receives — even during pairing flows, so in pairing mode ignore `qr` and wait for `pairingCode`. **Attach before `login()`.**
 
 ### `pairingCode`
 
 <ApiBadge kind="event" />
 
 ```ts
-client.on("pairingCode", (code) => console.log(code)); // e.g. "ABCD-EFGH"
+client.on("pairingCode", (code) => console.log(code)); // show to the user, confirm on the phone
 ```
 
 <ApiTable

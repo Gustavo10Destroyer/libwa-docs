@@ -87,7 +87,7 @@ Emit `ValidationError` with a specific `code` (overriding `ERR_VALIDATION`):
 | `ERR_UNSUPPORTED` | same as `UnsupportedOperationError` but as validation |
 | `ERR_SESSION_ID` | `assertSafeSessionId` (bad slot id) |
 | `ERR_SESSION_CORRUPT` | `FileSessionStore.load` (invalid JSON) |
-| `ERR_ENTITY_CONSTRUCTION` | entity factory invariants (e.g. `new Chat({kind:"group"})`) |
+| `ERR_ENTITY_CONSTRUCTION` | `Chat` constructor guard (e.g. `new Chat({kind:"group"})` — use the factory's `group()` instead) |
 
 ## Subclass signatures
 

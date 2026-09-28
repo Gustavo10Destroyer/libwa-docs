@@ -36,7 +36,7 @@ The constructor refuses <code>kind: "group"</code> on the base class (throws —
 | Getter | Type | Notes |
 | --- | --- | --- |
 | `name` | `string \| undefined` | Locally known name (updated by group updates/refresh). |
-| `displayName` | `string` | `name` → fallback id local part (digits before `@`). |
+| `displayName` | `string` | `name` → fallback to the full `id`. |
 
 ### Kind guards
 
@@ -199,7 +199,7 @@ class Message {
 | `isReply` | `boolean` | Has a reference. |
 | `reply` | `(content: ReplyContent) => Promise<Message>` | Quote-reply in this chat. |
 | `react` | `(emoji: string \| null) => Promise<void>` | Add/clear your reaction. |
-| `delete` | `(): Promise<void>` | Delete your own message. |
+| `delete` | `(): Promise<void>` | Delete this message (no ownership check in libwa — e.g. group admins deleting others'). |
 
 ### `MessageReference` <ApiBadge kind="interface" />
 
@@ -262,12 +262,24 @@ WhatsApp-protocol helper — `User.phone` uses it internally.
 ```ts
 class EntityFactory {
   constructor(client: Client);
+  get me(): User | null;
+  setSelf(self: BackendSelf): User;
   user(id: UserId, name?: string | undefined): User;          // sets isMe against client.me
+  selfUser(): User;
   chat(ref: ChatRef): Chat;                                   // picks Group for kind "group"
-  message(event: BackendMessageEvent): Message;
-  sentMessage(sent, content, mentions, reference): Message;   // outbound echo reconstruction
+  knownChat(id: ChatId): Chat | undefined;
+  group(id: ChatId, name?: string | undefined): Group;
+  applyGroupMetadata(metadata: GroupMetadata): Group;
   groupMetadata(id: ChatId): GroupMetadata | undefined;
   applyGroupChanges(groupId: ChatId, changes: GroupUpdateChanges): Group;
+  message(event: BackendMessageEvent): Message;
+  sentMessage(
+    sent: BackendSentMessage,
+    content: MessageContent,
+    mentions: readonly UserId[],
+    reference: MessageReference | undefined,
+  ): Message;                                                 // outbound echo reconstruction
+  reference(ref: BackendMessageReference, containingChat: Chat): MessageReference;
 }
 ```
 

@@ -6,10 +6,7 @@
 import { Client, type ClientOptions } from "libwa";
 
 const options: ClientOptions = {
-  backend: undefined,
-  sessionStore: undefined,
   sessionId: "default",
-  logger: undefined,
   commands: { prefix: "!", ignoreSelf: false },
   reconnect: { attempts: 5, initialDelayMs: 1000, maxDelayMs: 30000, factor: 2 },
   auth: { pairingPhoneNumber: "5511999999999" },
@@ -28,7 +25,7 @@ const client = new Client(options);
     { name: 'logger', type: 'Logger', def: 'undefined → nullLogger', description: 'Internal diagnostics sink. The default discards everything — inject a logger to see anything.' },
     { name: 'commands', type: 'CommandOptions | false', def: 'undefined → { prefix: &quot;!&quot; }', description: 'Command parsing configuration, or false to disable parsing entirely.' },
     { name: 'reconnect', type: 'ReconnectOptions | false', def: 'undefined → DEFAULT_RECONNECT object', description: 'Reconnection policy, or false to disable automatic retries.' },
-    { name: 'auth', type: '{ pairingPhoneNumber?: string | undefined }', def: 'undefined', description: 'Pairing-code login configuration. pairingPhoneNumber: international, 7-15 digits, no +.' }
+    { name: 'auth', type: '{ pairingPhoneNumber?: string }', def: 'undefined', description: 'Pairing-code login configuration. pairingPhoneNumber: international, 7-15 digits, no +.' }
   ]"
 />
 

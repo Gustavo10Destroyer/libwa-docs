@@ -93,7 +93,7 @@ End-to-end outbound flow: resolve target → `normalizeReplyContent(content, opt
 
 **Returns:** the sent `Message`.
 
-**Errors:** `ValidationError` (see [validation table](#validation-errors)), `MessageError` / `PermissionError` / `NotFoundError` / `BackendError` from the provider (context `Failed to send message`), `UnsupportedOperationError` when the backend lacks `sendMessage`.
+**Errors:** `ValidationError` (see [validation table](#validation-errors)), provider failures as `MessageError` (message `"Failed to send message: …"` — custom backends may also throw `PermissionError` / `NotFoundError` / `BackendError`). `sendMessage` is a required backend member, so there is no capability error for it.
 
 ```ts
 await client.messages.send(chatId, "plain text");
@@ -159,7 +159,7 @@ Runs **before** any backend call — every `send` path goes through it. Unit-tes
 | `ERR_EMPTY_MEDIA` | Zero-length media bytes. |
 | `ERR_EMPTY_REACTION` | Empty-string emoji (`""`); `null` is valid and clears the reaction. |
 
-All are `ValidationError` with `context` set (`send message`, `react`, `edit message`, `delete message`).
+All are `ValidationError` carrying the listed code, raised **before** any backend call.
 
 ## See also
 

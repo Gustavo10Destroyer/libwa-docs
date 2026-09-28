@@ -19,7 +19,7 @@ interface Logger {
 }
 ```
 
-Four levels, rest-spread args (no format string required). Implementations should be non-throwing — logger failures are swallowed by the library paths that call them.
+Four levels, rest-spread args (no format string required). Implementations should be non-throwing — the library does **not** guard logger calls, so a throwing logger propagates into whatever operation triggered the log (and can fail it).
 
 ## `nullLogger` <ApiBadge kind="constant" />
 
@@ -52,7 +52,7 @@ createConsoleLogger();        // "libwa debug: …"
 | Source | Level | Example line |
 | --- | --- | --- |
 | client error routing | `error` | `[reconnect exhausted] Gave up reconnecting after 5 attempt(s) (networkError).` |
-| error-listener failure | `warn` | `[error listener] <message>` |
+| error-listener failure | `error` | `[error listener] <message>` |
 | destroy/logout failures | `error` | `[disconnect during destroy] …` |
 | backend/provider diagnostics | `debug`/`info` | via `BackendConnectOptions.logger` (same instance) |
 

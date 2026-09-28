@@ -48,7 +48,7 @@ Each page documents signatures, parameters, return values, errors, and examples.
 | `DisconnectReason` | enum | [DisconnectReason](/reference/disconnect-reason) |
 | `FATAL_DISCONNECT_REASONS` | constant | [DisconnectReason](/reference/disconnect-reason#fatal-disconnect-reasons) |
 | `ChatId`, `UserId`, `Unsubscribe` | types | [IDs & helpers](/reference/ids) |
-| `MessageContent` + 11 content interfaces | types | [Message content](/reference/content) |
+| `MessageContent` + 12 content interfaces | types | [Message content](/reference/content) |
 | `Attachment`, `MediaInfo`, `MediaKind`, `ContactCard` | types | [Message content](/reference/content#media) |
 | `contentText`, `contentAttachments` | functions | [Message content](/reference/content#helpers) |
 
@@ -110,6 +110,7 @@ Each page documents signatures, parameters, return values, errors, and examples.
 | `BackendReactRequest`, `BackendEditMessageRequest`, `BackendDeleteMessageRequest` | interfaces | [Backend](/reference/backend#requests) |
 | `BackendGroupParticipantsRequest`, `BackendGroupNameRequest`, `BackendGroupDescriptionRequest` | interfaces | [Backend](/reference/backend#requests) |
 | `BackendEventMap` + event payloads | interfaces | [Backend](/reference/backend#backendeventmap) |
+| `BackendEventName`, `BackendEventListener` | types | [Backend](/reference/backend#backendeventmap) |
 | `createDefaultBackend` | function | [Backend](/reference/backend#createdefaultbackend) |
 | `createBaileysBackend`, `BaileysBackendOptions` | function / interface | [Backend](/reference/backend#createbaileysbackend) |
 

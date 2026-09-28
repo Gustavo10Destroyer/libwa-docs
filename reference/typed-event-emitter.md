@@ -71,7 +71,7 @@ emitter.emit("ping", 2);   // silent
 
 - `listenersOf` — snapshot array (permanent + pending once).
 - `hasListeners` — cheap guard; the client uses it to decide whether to emit `error` events.
-- `removeAllListeners` — full teardown (the client calls it on `destroy()`).
+- `removeAllListeners` — full teardown (available but unused by the client: `destroy()` detaches only the backend listeners, leaving application listeners registered).
 
 ## Wiring inside `Client`
 
@@ -80,8 +80,13 @@ The client constructs one emitter with an error hook:
 ```ts
 new TypedEventEmitter<ClientEvents>({
   onListenerError: (error, event) => {
-    logger.warn(`[${event} listener]`, toError(error).message);
-    // for the "error" event itself: log only, never re-emit (recursion guard)
+    if (event === "error") {
+      logger.error("[error listener]", toError(error).message);
+      // for the "error" event itself: log only, never re-emit (recursion guard)
+      return;
+    }
+    // logs `[listener for "<event>"]` at error level, then emits "error"
+    handleError(error, `listener for "${event}"`);
   },
 });
 ```

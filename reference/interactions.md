@@ -69,7 +69,7 @@ Sends a reply targeting this interaction's chat (quoted when the interaction car
 
 **Returns:** the sent `Message`.
 
-**Errors:** `ValidationError` (`ERR_EMPTY_MESSAGE`, `ERR_AMBIGUOUS_MESSAGE`, `ERR_INVALID_CAPTION`, `ERR_EMPTY_MEDIA`, `ERR_EMPTY_REACTION`) for bad input; `MessageError` / `PermissionError` / `NotFoundError` from the provider.
+**Errors:** `ValidationError` (`ERR_EMPTY_MESSAGE`, `ERR_AMBIGUOUS_MESSAGE`, `ERR_INVALID_CAPTION`, `ERR_EMPTY_MEDIA`) for bad input; provider failures surface as `MessageError` (bundled adapter) — custom backends may also throw `PermissionError` / `NotFoundError`.
 
 ```ts
 await i.reply("hi");
@@ -117,7 +117,7 @@ A received message with generic content `C` (defaults to `MessageContent`). Also
 | Getter | Type | Notes |
 | --- | --- | --- |
 | `content` | `C` | Discriminated by `kind`. |
-| `text` | `string` | `contentText(message.content)` — text, caption, or `""`. |
+| `text` | `string` | `contentText(message.content)` — text, caption, button/list label, poll name, or `""`. |
 | `attachments` | `readonly Attachment[]` | `contentAttachments(...)` — `[]` for non-media. |
 | `reference` | `MessageReference \| undefined` | Present when this is a reply/quote or an update to an original message. |
 | `isForwarded` | `boolean` | Forward flag from the provider. |
@@ -140,7 +140,7 @@ if (i.isMessage() && i.isImage()) {
 | Method | Signature | Description |
 | --- | --- | --- |
 | `react` | `(emoji: string \| null) => Promise<void>` | Add (`"👍"`) or clear (`null`) your own reaction. |
-| `delete` | `() => Promise<void>` | Delete **your own** message (`ERR_PERMISSION` otherwise). |
+| `delete` | `() => Promise<void>` | Delete this message — no ownership check in libwa (e.g. group admins deleting others' messages). |
 | `edit` | `(text: string) => Promise<Message>` | Edit **your own** message; returns the updated `Message`. |
 | `reply` | inherited | Reply in the same chat. |
 
@@ -229,7 +229,7 @@ Participants were added/removed/promoted/demoted in a group.
     { name: 'group', type: 'Group', description: 'Target group (richer than chat).' },
     { name: 'action', type: 'GroupParticipantAction', description: '&quot;add&quot; | &quot;remove&quot; | &quot;promote&quot; | &quot;demote&quot; | &quot;other&quot;.' },
     { name: 'users', type: 'readonly User[]', description: 'Affected participants.' },
-    { name: 'actor', type: 'User | undefined (via init)', description: 'Who performed it, when known (system events → undefined).' },
+    { name: 'actor', type: 'User | undefined', description: 'Who performed it, when known (system events → undefined).' },
     { name: 'isAdd / isRemove / isPromote / isDemote', type: 'boolean getters', description: 'Convenience narrowers over action.' }
   ]"
 />
@@ -314,12 +314,21 @@ With `commands: false` the client passes `null` and no message is ever parsed as
 
 ```ts
 class InteractionFactory {
-  constructor(client: Client);
-  createEvent(event: BackendEventMap[keyof BackendEventMap]): Interaction | null;
+  constructor(
+    client: Client,
+    entities: EntityFactory,
+    commands: CommandRegistry,
+    commandOptions: CommandParsingOptions | null,
+  );
+  fromMessage(event: BackendMessageEvent): Interaction;
+  fromReaction(event: BackendReactionEvent): ReactionInteraction;
+  fromMessageUpdate(event: BackendMessageUpdateEvent): MessageUpdateInteraction;
+  fromGroupParticipants(event: BackendGroupParticipantsEvent): GroupParticipantInteraction;
+  fromGroupUpdate(event: BackendGroupUpdateEvent): GroupUpdateInteraction;
 }
 ```
 
-Converts normalized backend events into the classes above. Returns `null` for payloads it cannot map (never throws), and instantiates `CommandInteraction` when the message passes `CommandRegistry.parse()` (or `commands: false` handling in the client). Only `Client` calls it — exported nowhere.
+Converts normalized backend events into the classes above — one method per event kind, each returning a concrete instance (never `null`; unrecognized message shapes still become a `MessageInteraction`). `fromMessage` returns `ButtonInteraction`/`ListInteraction` for those content kinds, and promotes the message to `CommandInteraction` when it passes `CommandRegistry.parse()` (subject to `ignoreSelf`). Only `Client` calls it — exported nowhere.
 
 ## See also
 

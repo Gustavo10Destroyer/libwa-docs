@@ -218,7 +218,7 @@ Invalidates the session and returns the client to `idle`:
 4. `backend.disconnect()` — failures → `error` (context `disconnect after logout`);
 5. `isReady = false`; `state = "idle"` (unless destroyed).
 
-Never rejects itself; a subsequent `login()` starts a **fresh pairing flow**. Does not detach listeners (unlike `destroy()`).
+Backend `logout()`/`disconnect()` failures are swallowed (reported through `error` with contexts `backend logout` / `disconnect after logout`), but a rejecting `sessionStore.clear()` **does** reject the call. A subsequent `login()` starts a **fresh pairing flow**. Does not detach listeners (unlike `destroy()`).
 
 ### `requestPairingCode`
 
@@ -226,7 +226,7 @@ Never rejects itself; a subsequent `login()` starts a **fresh pairing flow**. Do
 async requestPairingCode(phoneNumber: string): Promise<string>
 ```
 
-Requests an 8-character pairing code for phone-number login.
+Requests a pairing code from the server for phone-number login (the code format is provider-determined).
 
 <ApiTable
   :rows="[
@@ -234,7 +234,7 @@ Requests an 8-character pairing code for phone-number login.
   ]"
 />
 
-**Returns:** the code (e.g. `"ABCD-EFGH"`). A `pairingCode` event is also emitted by the backend when it produces a code.
+**Returns:** the code exactly as reported by the server. A `pairingCode` event is also emitted by the backend when it produces a code.
 
 **Errors:**
 
@@ -257,7 +257,7 @@ type ClientState = "idle" | "connecting" | "ready" | "destroyed";
 | `"idle"` | Not connected; `login()` may start a fresh attempt (initial state, after terminal close, after logout). |
 | `"connecting"` | `connect()` in flight or backoff timer pending. |
 | `"ready"` | Connection open; `isReady === true`. |
-| `"destroyed"` | Terminal; all listeners detached; `login()` rejects. |
+| `"destroyed"` | Terminal; backend listeners detached (application listeners remain); `login()` rejects. |
 
 ## Internal machinery <ApiBadge kind="internal" />
 

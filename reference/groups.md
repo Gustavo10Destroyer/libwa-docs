@@ -21,12 +21,12 @@ Every method accepts either a `Group` entity or a raw chat id string — interna
 class GroupService {
   constructor(backend: WhatsAppBackend, entities: EntityFactory); // internal
   fetch(target: GroupTarget): Promise<Group>;
-  addMembers(target: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
-  removeMembers(target: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
-  promote(target: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
-  demote(target: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
-  rename(target: GroupTarget, name: string): Promise<void>;
-  setDescription(target: GroupTarget, description: string | undefined): Promise<void>;
+  addMembers(group: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
+  removeMembers(group: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
+  promote(group: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
+  demote(group: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
+  rename(group: GroupTarget, name: string): Promise<void>;
+  setDescription(group: GroupTarget, description: string | undefined): Promise<void>;
 }
 ```
 
@@ -42,7 +42,7 @@ fetch(target): Promise<Group>
 
 Fetches full metadata and returns a **synchronized** `Group`: metadata applied, `name` cache updated, participants mapped to `User`s (with `isMe` set).
 
-**Errors:** `BackendError` (context `Failed to fetch group <id>`), `UnsupportedOperationError` if the backend lacks `getGroupMetadata`.
+**Errors:** `BackendError` (context `Failed to fetch group <id>`).
 
 ```ts
 const g = await client.groups.fetch(chat.id);
@@ -52,25 +52,25 @@ g.memberCount; g.announceOnly; g.owner?.displayName;
 ### `addMembers` / `removeMembers`
 
 ```ts
-addMembers(target, users): Promise<void>
-removeMembers(target, users): Promise<void>
+addMembers(group, users): Promise<void>
+removeMembers(group, users): Promise<void>
 ```
 
 Membership changes — **admin rights required** (provider-side `PermissionError` when missing).
 
-**Errors:**
+**Errors** (the capability check runs before the empty-list check):
 
 | Condition | Error | Code |
 | --- | --- | --- |
-| `users` empty | `ValidationError` | `ERR_EMPTY_USER_LIST` |
 | backend lacks `updateGroupParticipants` | `UnsupportedOperationError` | `ERR_UNSUPPORTED` |
-| provider failure | `BackendError` (context `Failed to add group participants` / `Failed to remove group participants`) | `ERR_BACKEND` |
+| `users` empty | `ValidationError` | `ERR_EMPTY_USER_LIST` |
+| provider failure | `PermissionError` (admin rights, 401–403) / `NotFoundError` (404) / `BackendError` otherwise | `ERR_PERMISSION` / `ERR_NOT_FOUND` / `ERR_BACKEND` |
 
 ### `promote` / `demote`
 
 ```ts
-promote(target, users): Promise<void>
-demote(target, users): Promise<void>
+promote(group, users): Promise<void>
+demote(group, users): Promise<void>
 ```
 
 Role changes — same error semantics as membership (`Failed to promote/demote group participants` contexts).
@@ -78,7 +78,7 @@ Role changes — same error semantics as membership (`Failed to promote/demote g
 ### `rename`
 
 ```ts
-rename(target, name): Promise<void>
+rename(group, name): Promise<void>
 ```
 
 <ApiTable
@@ -94,10 +94,10 @@ On success the factory's cached metadata (when known) is patched with the new na
 ### `setDescription`
 
 ```ts
-setDescription(target, description: string | undefined): Promise<void>
+setDescription(group, description: string | undefined): Promise<void>
 ```
 
-Sets the group description — `undefined` **clears** it (validated before the capability check, so empty/undefined behaves consistently).
+Sets the group description — `undefined` **clears** it (the capability check runs first; there is no empty-value validation, unlike `rename`).
 
 **Errors:** `ERR_UNSUPPORTED` (no `updateGroupDescription`), `BackendError` (context `Failed to update description of group <id>`). Cached metadata patched on success.
 
@@ -117,7 +117,7 @@ await g.refresh();                       // same as client.groups.fetch + apply
 console.log(g.displayName, g.memberCount, g.metadata?.announceOnly);
 
 // Guarded moderation command
-if (i.isCommand() && i.groupOnly && i.isFromGroup()) {
+if (i.isCommand() && i.command?.groupOnly && i.isFromGroup()) {
   const target = i.args[0];
   await client.groups.removeMembers(i.chat.id, [target]);
 }

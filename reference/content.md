@@ -32,11 +32,11 @@ type MessageContent =
 | `"audio"` | `AudioContent` | `attachment` |
 | `"document"` | `DocumentContent` | `caption`, `attachment` |
 | `"sticker"` | `StickerContent` | `attachment` |
-| `"location"` | `LocationContent` | `latitude`, `longitude`, `address?`, `name?` |
-| `"contact"` | `ContactContent` | `cards: ContactCard[]` |
+| `"location"` | `LocationContent` | `latitude`, `longitude`, `address: string \| undefined`, `name: string \| undefined` |
+| `"contact"` | `ContactContent` | `cards: readonly ContactCard[]` |
 | `"poll"` | `PollContent` | `name`, `options`, `selectableCount` |
 | `"buttonReply"` | `ButtonReplyContent` | `buttonId`, `title`, `displayText`, `variant` |
-| `"listReply"` | `ListReplyContent` | `rowId`, `title`, `description?` |
+| `"listReply"` | `ListReplyContent` | `rowId`, `title`, `description: string \| undefined` |
 | `"unknown"` | `UnknownContent` | `description` — never crashes on new provider payloads |
 
 `MediaMessageContent` = the subset with an `attachment` (image/video/audio/document/sticker).
@@ -74,10 +74,12 @@ interface Attachment extends MediaInfo {
 ```
 
 ```ts
+import { writeFile } from "node:fs/promises";
+
 if (i.isMessage() && i.isDocument()) {
   const { attachment } = i.content;
   const bytes = await attachment.download();
-  await Deno.writeFile(attachment.fileName ?? "file.bin", bytes);
+  await writeFile(attachment.fileName ?? "file.bin", bytes);
 }
 ```
 
@@ -98,7 +100,7 @@ interface ContactCard {
 function contentText(content: MessageContent): string
 ```
 
-Returns the plain text associated with content: `text` for text, `caption` for image/video/document, `""` otherwise (including `unknown`). Used internally by `MessageInteraction.text` — use it directly when working with bare content.
+Returns the plain text associated with content: `text` for text, `caption` for image/video/document, `displayText` for `buttonReply`, `title` for `listReply`, `name` for `poll`, and `""` for everything else (audio, sticker, location, contact, unknown). Used internally by `MessageInteraction.text` — use it directly when working with bare content.
 
 ```ts
 contentText({ kind: "text", text: "hi" });            // "hi"
