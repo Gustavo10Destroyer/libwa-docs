@@ -46,7 +46,7 @@ Additional:
 | `noNonNullAssertion` (**error**) | no `!` — check instead |
 | recommended rules | suspicious/style/correctness defaults |
 
-`as unknown as X` is reserved for test fixtures where a provider-shaped literal is intentionally coerced.
+`as unknown as X` is reserved for test fixtures where a provider-shaped literal is intentionally coerced, plus the single internal cast in `TypedEventEmitter`'s snapshot code.
 
 ## Architecture rules
 
@@ -58,7 +58,7 @@ Additional:
 | listeners never crash | all emit paths route failures to `onListenerError` / `error` event |
 | entities delegate to services | `chat.send` → `client.messages.send`, never to a backend |
 | option defaults live in one place | `resolveClientOptions` (`DEFAULT_RECONNECT`, prefix rules) |
-| validation before capability checks | e.g. empty group name errors even when backend lacks rename |
+| input validation before backend I/O | `rename("")` errors before the capability check; participant ops check capability first, then the user list |
 
 ## Naming
 
@@ -77,7 +77,7 @@ Additional:
 - user input → `ValidationError` with a specific `code`;
 - provider failures → `rethrowAsBackendError` (context strings start with a verb phrase: `Failed to send message`);
 - internal dispatch failures → `#handleError(e, context)` (context = stage name);
-- never throw from: listener wrappers, logger calls, `destroy()`, `logout()` (these report, not raise).
+- never throw from: listener wrappers (failures route to `onListenerError` / the `error` event) and `destroy()` (reports, not raises); `logout()` swallows backend failures but can surface a rejecting store `clear()`; keep `Logger` implementations total — the library does not guard logger calls.
 
 ## Docs discipline
 

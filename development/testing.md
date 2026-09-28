@@ -9,7 +9,7 @@ How `libwa` is tested: strategy, helpers, suite map, and what each layer guarant
 | runner | vitest 3 (`npm test` = `vitest run`) |
 | location | `tests/**/*.test.ts`, node environment |
 | config | `vitest.config.ts` — coverage excludes `src/backend/baileys/**` and `src/index.ts` |
-| totals | **13 files, 189 tests**, ~1.2s wall time |
+| totals | **13 files, 189 tests**, ~2s wall time |
 
 ## Strategy: contract tests, not provider integration
 
@@ -82,8 +82,8 @@ Builders for every backend event: `messageEvent`, `reactionEvent`, `messageUpdat
 
 - **Dispatch order**: middleware → command → listeners, including gate-skips still notifying listeners.
 - **Failure isolation**: a throwing listener/command/middleware produces an `error` event (with right context) and nothing else — plus the `error`-listener recursion guard.
-- **Reconnection policy**: fatal set honored, attempts exhausted, `reconnect: false`, backoff formula, counter reset on open, timer cancellation on `destroy()`/`logout()`.
-- **Validation completeness**: every `ERR_*` code has a test asserting it fires for the right input.
+- **Reconnection policy**: fatal set honored, attempts exhausted, `reconnect: false`, backoff formula, counter reset on open, timer cancellation on `destroy()`.
+- **Validation paths**: each validation rule is exercised for the right input — assertions use the error class, `error.code`, or a regex on the constructor message.
 - **Mapping fidelity**: provider fixtures → exact `MessageContent` shapes (the biggest suite — the mapper is the highest-risk surface).
 - **Store semantics**: atomic writes, per-slot serialization, `null` for missing, `ERR_SESSION_ID` / `ERR_SESSION_CORRUPT`.
 - **No leaks**: `check:exports` (separate stage) proves the surface stays provider-free.
@@ -94,7 +94,7 @@ Builders for every backend event: `messageEvent`, `reactionEvent`, `messageUpdat
 - use `Partial<…>` overrides in fixtures instead of hand-building full payloads;
 - fake timers for anything involving backoff;
 - no network, no filesystem beyond temp dirs (session tests use `node:os` temp or in-memory paths);
-- assertions on `error.code` (stable), not message text.
+- assert the error class and `error.code` where stable; regex on message text for exact constructor messages.
 
 ## Running subsets
 

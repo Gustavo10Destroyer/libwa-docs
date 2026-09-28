@@ -41,7 +41,7 @@ libwa/
 | package name | `libwa` (v0.1.0, MIT, ESM, Node ≥ 18.17) |
 | runtime dependency | `@whiskeysockets/baileys` only |
 | public surface | `exports`: `.` → `dist/index.js` + `dist/index.d.ts`, plus `./package.json` |
-| published files | `dist`, `README.md`, `docs` |
+| published files | `dist`, `docs`, `LICENSE` (README auto-included) |
 | test runner | vitest (`tests/**/*.test.ts`, node environment) |
 | linter/formatter | biome |
 | build | `tsc -p tsconfig.build.json` (declarations + sourcemaps) |
@@ -49,16 +49,16 @@ libwa/
 
 ## Source inventory
 
-Roughly 5,900 lines of `src` across 39 modules, grouped by layer:
+Roughly 5,900 lines of `src` across 45 TypeScript files (43 modules + 2 barrels), grouped by layer:
 
-| Area | Modules | Role |
+| Area | Files | Role |
 | --- | --- | --- |
-| client | 2 | lifecycle + options |
-| interactions | 11 | event classes + factory |
+| client | 3 | lifecycle + options + `index.ts` barrel |
+| interactions | 11 | event classes + factory + `InteractionType` |
 | entities | 5 | domain objects + factory |
-| backend | 9 (incl. 5 Baileys) | contract + adapter |
-| services | 4 | messaging, groups, commands, payload |
-| infrastructure | 9 | sessions, middleware, events, errors, logging, core |
+| backend | 9 | contract (3) + Baileys adapter (6, incl. `index.ts` barrel) |
+| services | 6 | messaging (3), commands (2), groups (1) |
+| infrastructure | 11 | auth (3), core (3), events (2), middleware (1), errors (1), logging (1) |
 
 ## Tests
 
@@ -86,9 +86,9 @@ Helpers: `MockBackend` / `CapableMockBackend` (201 lines — a ~200-line contrac
 
 | File | Demonstrates |
 | --- | --- |
-| `basic-bot.ts` | logger, commands, QR listener, ready, reply/react |
+| `basic-bot.ts` | logger, commands, QR listener, ready, reply |
 | `pairing-login.ts` | `WA_PHONE_NUMBER` pairing-code flow |
-| `middleware-filters.ts` | rate limit, group-only, error classes, `DisconnectReason` handling |
+| `middleware-filters.ts` | rate limit, chat deny-list, group-join welcome, error classes, `DisconnectReason` handling |
 
 All import `"libwa"` exactly like consumer code and are covered by `npm run typecheck`.
 

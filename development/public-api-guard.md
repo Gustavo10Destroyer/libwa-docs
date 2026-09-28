@@ -61,7 +61,7 @@ How the walk works:
 3. BFS from `dist/index.d.ts`, visiting each file once;
 4. apply checks 4–6 per visited file.
 
-**Allowed by design:** *unreachable* internal `.d.ts` files may reference Baileys — the exports map keeps consumers away from them. (The reachable graph is ~40 files; `src/backend/baileys/*.d.ts` is not among them because no public type mentions the adapter's internals.)
+**Allowed by design:** *unreachable* internal `.d.ts` files may reference Baileys — the exports map keeps consumers away from them. (The reachable graph is ~40 files; it does include `dist/backend/baileys/index.d.ts` and `dist/backend/baileys/BaileysBackend.d.ts` — re-exported via `createBaileysBackend` — but they pass because the *emitted* declarations expose only `browser`/`syncFullHistory`, no provider tokens.)
 
 ## Demonstration: a leak fails the build
 
