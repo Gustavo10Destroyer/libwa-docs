@@ -7,7 +7,7 @@ Symptom → cause → fix. Ordered by how often bot authors hit it.
 ### `qr` event never fires
 
 - Attach listeners **before** `login()`: `client.on("qr", …)` after `await client.login()` is too late (the event fires during connect).
-- Pairing mode suppresses QR: if `auth.pairingPhoneNumber` is set (or `requestPairingCode()` is in flight), use the `pairingCode` event instead.
+- Pairing flow: listen for `pairingCode` (emitted whenever a code is produced — auto via `auth.pairingPhoneNumber` or manual `requestPairingCode()`). libwa does **not** suppress `qr`; if one still arrives while waiting for the code, ignore it.
 - Check you are not swallowing errors: attach `client.on("error", …)` and log it.
 
 ### Pairing code request fails
@@ -23,7 +23,7 @@ Symptom → cause → fix. Ordered by how often bot authors hit it.
 Session is dead (`loggedOut` / `badSession` / `connectionReplaced` / `forbidden`). **No automatic retry will fix it** — re-pair:
 
 ```ts
-await client.logout();   // clears the slot (ignores errors)
+await client.logout();   // clears the slot (backend failures are reported through "error")
 // then QR or pairing flow again
 ```
 
@@ -44,7 +44,7 @@ You called `destroy()` while login was pending — expected. Create a new `Clien
 Almost always: no `error` listeners and `logger` unset (defaults to `nullLogger`) — failures are invisible. Always start with:
 
 ```ts
-client.on("error", (e) => console.error("[libwa]", e.code, e.message, e.cause));
+client.on("error", (e) => console.error("[libwa]", e instanceof WhatsAppError ? e.code : "—", e.message, e.cause));
 ```
 
 ## Reconnection
@@ -76,7 +76,7 @@ Should not happen (backend generation guards drop dead-socket events). If you se
 
 ### `ERR_DUPLICATE_COMMAND` at registration
 
-Name or alias already taken (aliases count as commands for collisions). Use `registry.get(name)` / `registry.resolve(alias)` or `unregister(name)` first — note aliases registered by an existing command are removed with it.
+Name or alias already taken. New *aliases* are checked against both existing commands and aliases; a new *name* is only checked against commands — so a command can shadow an existing alias (keep names unique to avoid surprises). Use `registry.get(name)` / `registry.resolve(alias)` or `unregister(name)` first — note aliases registered by an existing command are removed with it.
 
 ### Middleware seems to swallow everything
 
@@ -90,10 +90,10 @@ Skip = stop. A middleware that `return`s without `await next()` blocks commands 
 | caption without media | `ERR_INVALID_CAPTION` | captions only on image/video/document |
 | empty media bytes | `ERR_EMPTY_MEDIA` | you passed `Uint8Array(0)` — check your file read |
 | reaction rejected | `ERR_EMPTY_REACTION` | use `null` to clear, `""` is invalid |
-| `PermissionError` | `ERR_PERMISSION` | not admin (group ops) / can't delete (not your message) |
+| `PermissionError` | `ERR_PERMISSION` | not admin (group ops) |
 | `NotFoundError` | `ERR_NOT_FOUND` | message/chat deleted — stop acting on it |
 | `UnsupportedOperationError` | `ERR_UNSUPPORTED` | backend lacks the capability: `if (client.backend.react)` |
-| `BackendError` | `ERR_BACKEND` | provider refused; inspect `.cause` (rate limits, bad JID) |
+| `BackendError` | `ERR_BACKEND` | group rename/description, pairing codes, custom backends — inspect `.cause`; send/media failures surface as `MessageError` |
 
 ### Media download returns nothing / fails
 
@@ -139,7 +139,7 @@ const client = new Client({
   logger: createConsoleLogger("bot"),   // see internal activity
   commands: { prefix: "!" },
 });
-client.on("error", (e) => console.error("ERROR", e.code, e.message, "cause:", e.cause));
+client.on("error", (e) => console.error("ERROR", e instanceof WhatsAppError ? e.code : "—", e.message, "cause:", e.cause));
 client.on("disconnect", (r) => console.error("DISCONNECT", r));
 client.on("reconnecting", (n, ms) => console.warn(`retry ${n} in ${ms}ms`));
 await client.login().catch((e) => console.error("LOGIN FAILED", e.code, e.message));
