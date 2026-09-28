@@ -70,7 +70,7 @@ This is what makes "swap the provider, keep the bot" true at the type level.
 
 ## Baileys adapter
 
-Five modules, one public factory (`createBaileysBackend` — the class is module-private):
+Five modules plus an `index.ts` barrel, one public factory (`createBaileysBackend` — the class is module-private):
 
 | File | Role |
 | --- | --- |
@@ -107,7 +107,7 @@ stateDiagram-v2
 
 | Mechanism | What it guarantees |
 | --- | --- |
-| import discipline | only `src/backend/baileys/` may `import … from "@whiskeysockets/baileys"` (biome/lint + review) |
+| import discipline | only `src/backend/baileys/` may `import … from "@whiskeysockets/baileys"` (convention + review — biome has no import-restriction rule; `check:exports` guards the emitted types) |
 | package `exports` | only `.` and `./package.json` — deep `dist/` imports impossible |
 | `npm run check:exports` | walks the reachable graph of `dist/index.d.ts`; any provider token (`@whiskeysockets/baileys`, `WAMessage`, `WASocket`, `proto.`, …) fails the build |
 | tests | import `src/…` paths; provider-free tests use `MockBackend`; Baileys behavior tested at mapper/auth/disconnect level with realistic fixtures |

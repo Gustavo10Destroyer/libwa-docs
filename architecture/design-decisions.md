@@ -110,7 +110,7 @@ ADR-style notes on why libwa is shaped the way it is. Each entry: **context → 
 
 ## 16. Repo hygiene choices
 
-- **`noExplicitAny` / `noNonNullAssertion` as lint errors** — casts must be intentional (`as unknown as …` in tests only).
+- **`noExplicitAny` / `noNonNullAssertion` as lint errors** — casts must be intentional (`as unknown as …` in tests and inside `TypedEventEmitter`'s snapshot casts).
 - **`exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`** — public optionals are written `field: T | undefined`.
 - **Biome over ESLint+Prettier** — one fast tool; 2-space formatting authoritative.
 - **tsconfig split** — base config typechecks `src` + `tests` + `examples` (no emit); `tsconfig.build.json` adds `rootDir: src`, declarations, sourcemaps for `dist/`.

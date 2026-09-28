@@ -53,8 +53,8 @@ sequenceDiagram
     P->>B: raw socket event
     B->>B: guards + map (or null)
     B->>C: connection | message | … (normalized)
-    C->>F: createEvent(payload)
-    F-->>C: Interaction | null
+    C->>F: fromMessage | fromReaction | … (payload)
+    F-->>C: Interaction
     C->>M: runMiddlewareChain(mws, i, last)
     M->>L: last(): command.execute()
     L->>L: interactionCreate listeners
@@ -64,8 +64,8 @@ sequenceDiagram
 
 `Client.#subscribeBackend()` attaches the six listeners **once per instance** (guarded). Each payload:
 
-1. `InteractionFactory.createEvent()` → `Interaction | null` (null drops it silently — e.g. unparseable payloads, `ignoreSelf` command echoes);
-2. `void this.#dispatch(interaction)` — fire-and-forget with errors captured internally.
+1. for message/reaction/update/group payloads, the matching `InteractionFactory.from*()` method → a concrete `Interaction` (never `null`; `ignoreSelf` only suppresses *command* promotion — the message still dispatches as a `MessageInteraction`). `connection` payloads go to the lifecycle logic instead;
+2. `void this.#dispatch(interaction)` — fire-and-forget with errors captured internally (message-shaped events only).
 
 ### 5. Middleware → command → listeners
 
@@ -74,7 +74,7 @@ sequenceDiagram
 | Stage | Behavior on throw |
 | --- | --- |
 | `runMiddlewareChain(middlewares, i, last)` | context `middleware` → `error` event |
-| gate `groupOnly`/`dmOnly` → `command.execute(i)` | context `` `command ${name}` `` → `error` event |
+| gate `groupOnly`/`dmOnly` → `command.execute(i)` | context `` `command "${name}"` `` → `error` event |
 | `interactionCreate` listeners (sequential, awaited) | context `interactionCreate listener` → `error` event |
 
 Every stage is individually try/caught — one failure never skips the rest of that stage's siblings, and **the process never crashes**.

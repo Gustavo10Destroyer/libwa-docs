@@ -1,6 +1,6 @@
 # Architecture overview
 
-libwa is a small core with a **hard boundary around provider code**. Everything above the seam is provider-free; the only file allowed to import `@whiskeysockets/baileys` lives in `src/backend/baileys/`.
+libwa is a small core with a **hard boundary around provider code**. Everything above the seam is provider-free; the only code allowed to import `@whiskeysockets/baileys` lives in `src/backend/baileys/`.
 
 ```mermaid
 flowchart TD
@@ -63,7 +63,7 @@ The abstract [`Interaction`](/reference/interactions) carries `id`, `timestamp`,
 | `src/middleware/` | `compose.ts` chain runner | ❌ |
 | `src/errors/`, `src/logging/`, `src/core/`, `src/auth/` | errors, logger, ids/content/reasons, stores | ❌ |
 | `src/backend/` | contract (`Backend.ts`, `events.ts`), `createDefaultBackend` | ❌ |
-| **`src/backend/baileys/`** | the adapter (5 files) | ✅ **only here** |
+| **`src/backend/baileys/`** | the adapter (5 modules + `index.ts` barrel — 4 of them import the provider) | ✅ **only here** |
 
 ```mermaid
 flowchart LR

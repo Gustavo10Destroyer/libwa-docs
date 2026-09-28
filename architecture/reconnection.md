@@ -6,14 +6,14 @@ Reconnection is **client-owned**. Backends map provider close codes into [`Disco
 flowchart TD
     A["connection close<br/>(reason + detail from backend)"] --> B{"state === destroyed?"}
     B -->|yes| Z["ignored (terminal)"]
-    B -->|no| C["isReady = false<br/>state = connecting"]
+    B -->|no| C["isReady = false"]
     C --> D{"FATAL_DISCONNECT_REASONS.has(reason)?"}
-    D -->|yes| F["emit 'disconnect'(reason)<br/>login pending → reject AuthenticationError"]
+    D -->|yes| F["state = idle<br/>login pending → emit 'error' (login) + reject AuthenticationError<br/>emit 'disconnect'(reason)"]
     D -->|no| E{"reconnect === false?"}
     E -->|yes| F
     E -->|no| G{"attempts used >= attempts?"}
-    G -->|yes| H["emit 'error' (reconnect exhausted)<br/>emit 'disconnect'(reason)<br/>login pending → reject ConnectionError"]
-    G -->|no| I["attempt++<br/>delay = min(max, initial * factor^&#123;n-1&#125;)<br/>emit 'reconnecting'(attempt, delay)<br/>schedule timer (unref)"]
+    G -->|yes| H["state = idle<br/>login pending → emit 'error' (login) + reject ConnectionError<br/>emit 'disconnect'(reason)<br/>emit 'error' (reconnect exhausted)"]
+    G -->|no| I["state = connecting<br/>attempt++<br/>delay = min(max, initial * factor^&#123;n-1&#125;)<br/>emit 'reconnecting'(attempt, delay)<br/>schedule timer (unref)"]
     I --> J["connect() again<br/>(same backend instance)"]
     J -->|open| K["attempt = 0<br/>emit 'ready' (again)"]
     J -->|throws| L["error event (context: reconnection)<br/>rerun close logic with same reason"]
@@ -37,9 +37,9 @@ Backoff formula: `delay(n) = min(maxDelayMs, initialDelayMs * factor ** (n - 1))
 
 | Situation | Outcome |
 | --- | --- |
-| fatal reason (loggedOut, badSession, connectionReplaced, forbidden) | no retry → `disconnect`; login pending → `AuthenticationError` |
+| fatal reason (loggedOut, badSession, connectionReplaced, forbidden) | no retry → login pending: `error` (context `login`) + reject `AuthenticationError`, then `disconnect` |
 | `reconnect: false` | no retry → `disconnect` |
-| attempts exhausted | `error` (gave up message) + `disconnect`; login pending → `ConnectionError` |
+| attempts exhausted | login pending: `error` (login) + reject `ConnectionError`, then `disconnect`, then `error` (gave up message) |
 | transient reason, attempts left | `reconnecting(attempt, delayMs)` + timer → `connect()` |
 | scheduled `connect()` throws | `error` (context `reconnection`) → close logic reruns with same reason |
 | `destroy()` mid-timer | timer cancelled, listeners detached, pending `login()` rejected (no `error` event for that) |
@@ -87,7 +87,7 @@ Retries call `connect()` **on the existing backend** — no re-instantiation mid
 
 | Operation | Reconnect effect | Session effect | Listeners |
 | --- | --- | --- | --- |
-| `destroy()` | cancels timer, state `destroyed` | preserved | detached (`removeAllListeners`) |
+| `destroy()` | cancels timer, state `destroyed` | preserved | backend listeners detached (application listeners kept) |
 | `logout()` | cancels timer, state `idle` | **cleared** (after remote revoke) | kept — `login()` re-pairs fresh |
 
 ## Observability
@@ -106,7 +106,7 @@ Timers are `unref`'d — pending backoff never keeps a Node process alive.
 
 ## Testing policy
 
-The repo tests this with fake timers: exhaust path, fatal path, disabled path, reset-on-open, timer cancel on destroy/logout ([Development → testing](/development/testing#what-we-test-guarantees)).
+The repo tests this with fake timers: exhaust path, fatal path, disabled path, reset-on-open, timer cancel on destroy ([Development → testing](/development/testing#what-we-test-guarantees)).
 
 ## See also
 
