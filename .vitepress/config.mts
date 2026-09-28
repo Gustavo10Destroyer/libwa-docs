@@ -233,7 +233,8 @@ export default withMermaid(
       darkModeSwitchTitle: "Switch to dark theme",
 
       footer: {
-        message: "libwa documentation — MIT licensed.",
+        message:
+          "libwa documentation — MIT licensed · Entirely vibe-coded: ChatGPT (orchestration) + MiMo-V2.6-Flash (implementation)",
         copyright: "Copyright © 2026 Gustavo10Destroyer",
       },
     },

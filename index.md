@@ -36,3 +36,7 @@ features:
     title: Resilient connections
     details: Client-owned exponential backoff with a fatal-reason short circuit, QR and pairing-code login, and a lifecycle that survives provider restarts.
 ---
+
+::: tip How this project was made
+This project was created **entirely through vibe coding**: **ChatGPT** handled orchestration and **MiMo-V2.6-Flash** handled implementation. It is beta software — expect rough edges, and please [report issues](https://github.com/Gustavo10Destroyer/libwa/issues) as you find them.
+:::

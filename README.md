@@ -2,6 +2,8 @@
 
 Source of the **libwa** documentation site — built with [VitePress](https://vitepress.dev) and Mermaid, including custom `ApiBadge`/`ApiTable`/`ApiNote` components used by the API reference.
 
+> **How this was made:** the project was created **entirely through vibe coding** — **ChatGPT** for orchestration, **MiMo-V2.6-Flash** for implementation.
+
 **Live site:** <https://gustavo10destroyer.github.io/libwa-docs/>
 
 ## Develop
