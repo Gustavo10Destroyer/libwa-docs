@@ -61,7 +61,7 @@ The [`Logger`](/reference/logger) interface is four methods:
 ```ts
 import { type Logger, createConsoleLogger, nullLogger } from "libwa";
 
-// Built-in console logger with a prefix: "libwa info: ..."
+// Built-in console logger with your prefix: "my-bot info: ..." (default prefix "libwa")
 const logger = createConsoleLogger("my-bot");
 
 // Bring your own (pino, winston, ts-log, ...)

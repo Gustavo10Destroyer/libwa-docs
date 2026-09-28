@@ -102,7 +102,7 @@ process.on("SIGINT", () => {
 
 ## Phone-number login (pairing code)
 
-Instead of scanning a QR, request an 8-character pairing code and enter it on the phone under **WhatsApp → Linked devices → Link a device**:
+Instead of scanning a QR, request a pairing code and enter it on the phone under **WhatsApp → Linked devices → Link a device**:
 
 ```ts
 import { Client } from "libwa";
@@ -112,7 +112,7 @@ const client = new Client({
 });
 
 client.on("pairingCode", (code) => {
-  console.log(`Pairing code: ${code}`); // e.g. "ABCD-EFGH"
+  console.log(`Pairing code: ${code}`); // show to the user, then confirm on the phone
 });
 
 await client.login();

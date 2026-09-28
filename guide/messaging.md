@@ -123,7 +123,7 @@ sent.text;                         // "x"
 const again = await sent.attachments[0]?.download();
 ```
 
-Backend failures are wrapped: provider errors surface as [`BackendError`](/reference/errors#backenderror) (`"Failed to send message: …"`) with the original in `cause`. Validation failures throw before the backend is called.
+Backend failures are wrapped: provider errors surface as [`MessageError`](/reference/errors#messageerror) (`"Failed to send message: …"` — `rethrowAsBackendError` passes `WhatsAppError` subclasses through unchanged). Validation failures throw before the backend is called.
 
 ## Reacting
 
@@ -135,7 +135,7 @@ await client.messages.reactTo(chat, messageId, "👍"); // via raw ids
 
 - Empty string emoji → `ValidationError` (`ERR_EMPTY_REACTION`).
 - Missing backend capability → `UnsupportedOperationError` (`Backend "…" does not support reactions.`).
-- Provider failure → wrapped via `rethrowAsBackendError`.
+- Provider failure → surfaces as `MessageError` (library `WhatsAppError`s pass through `rethrowAsBackendError` unchanged).
 
 Entities: `message.react("👍")`, `interaction.react("👍")` (on message-ish interactions), and `reactionInteraction.react("👍")` (reacts to the *reacted* message).
 
@@ -185,11 +185,11 @@ The mapper caches quoted messages synthetically when they arrive inline, so `int
 
 | Operation | Validation | Missing capability | Provider failure |
 | --- | --- | --- | --- |
-| `send` | `ValidationError` *before* backend | — | `BackendError` |
-| `react` | `ERR_EMPTY_REACTION` | `UnsupportedOperationError` | wrapped |
-| `edit` | `ERR_EMPTY_MESSAGE` | `UnsupportedOperationError` | wrapped |
-| `delete` | — | `UnsupportedOperationError` | wrapped |
-| `attachment.download()` | — | — | `NotFoundError` / `BackendError` |
+| `send` | `ValidationError` *before* backend | — | `MessageError` |
+| `react` | `ERR_EMPTY_REACTION` | `UnsupportedOperationError` | `MessageError` |
+| `edit` | `ERR_EMPTY_MESSAGE` | `UnsupportedOperationError` | `MessageError` |
+| `delete` | — | `UnsupportedOperationError` | `MessageError` |
+| `attachment.download()` | — | — | `NotFoundError` / `MessageError` |
 
 ## Complete example
 

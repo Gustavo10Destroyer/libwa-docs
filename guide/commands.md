@@ -41,7 +41,7 @@ client.commands.registerAll([
 
 <ApiTable
   :rows="[
-    { name: 'name', type: 'string', description: 'Command name without prefix. Normalized to lowercase. Must match /^[a-z0-9][a-z0-9_-]{0,31}$/ after lowercasing (1-32 chars, starts with a letter or digit).' },
+    { name: 'name', type: 'string', description: 'Command name without prefix. Matched case-insensitively: the registry key and parsed names are lowercased, while definition.name keeps its original casing. Pattern (applied to the lowercased value): /^[a-z0-9][a-z0-9_-]{0,31}$/ (1-32 chars, starts with a letter or digit).' },
     { name: 'description', type: 'string', def: 'undefined', description: 'Short help text. Free-form — the library never renders help for you.' },
     { name: 'aliases', type: 'readonly string[]', def: 'undefined', description: 'Alternative names. Each must pass the same name pattern and must not collide with any existing command or alias.' },
     { name: 'category', type: 'string', def: 'undefined', description: 'Grouping label for your own help listings. libwa stores it but does not use it.' },
@@ -65,7 +65,7 @@ Inside `execute`, the interaction is a `CommandInteraction`, which **is** a `Mes
 | Name already registered | `ERR_DUPLICATE_COMMAND` | `Command "ping" is already registered.` |
 | Alias collides with a command or another alias | `ERR_DUPLICATE_COMMAND` | `Alias "p" conflicts with an existing command.` |
 
-Names are stored lowercase; `register({ name: "Ping" })` stores `"ping"` (the pattern test runs on the lowercased value, so `"Ping"` is accepted and equal to `"ping"`).
+Names are stored lowercase as registry keys; `register({ name: "Ping" })` keys the command as `"ping"` while `definition.name` stays `"Ping"` (the pattern test runs on the lowercased value, and `parse()` always yields lowercase names).
 
 ```ts
 try {
@@ -236,7 +236,7 @@ Full signatures: [CommandRegistry reference](/reference/commands#commandregistry
 - **Case insensitivity:** commands are always lowercased — `!PING` invokes `ping`.
 - **Prefix inside text:** only a *leading* prefix counts (`hello !ping` is a message).
 - **`rawArgs` spacing:** preserved verbatim after trimming ends — use `args` for token logic.
-- **Aliases are global:** `alias: "ping"` collides with a command named `ping`.
+- **Aliases are global:** `alias: "ping"` collides with a command named `ping`. The reverse is *not* checked — a new command name only collides with existing commands, so it can shadow an existing alias (`resolve()` prefers the alias). Keep names unique.
 - **Unknown prefixed commands:** still `CommandInteraction`s with `command === undefined` — handle in listeners or via a fallback command check:
 
   ```ts

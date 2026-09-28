@@ -8,7 +8,7 @@ Group data flows through three layers: the [`Group`](/reference/entities#group) 
 const group = await client.groups.fetch("123456789@g.us");
 // or: await client.groups.fetch(someGroupEntity);
 
-group.name;         // string
+group.name;         // string | undefined (metadata name, else cached chat name)
 group.description;  // string | undefined
 group.owner;        // User | undefined
 group.memberCount;  // number | undefined

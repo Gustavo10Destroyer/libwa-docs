@@ -114,11 +114,12 @@ flowchart TD
 | `new Client(options)` | `ValidationError` `ERR_INVALID_PREFIX` |
 | `client.login()` | rejects with `AuthenticationError` (fatal/session) or `ConnectionError` (connect failed, retries off/exhausted before ready); resolves after first `ready` |
 | `client.requestPairingCode(phone)` | `ValidationError` `ERR_INVALID_PHONE` / `ERR_UNSUPPORTED` |
-| `client.destroy()` / `logout()` | never rejects — internal failures are reported through `error` |
-| `client.messages.send(...)` | `ValidationError` (payload rules) / `BackendError` |
-| `client.messages.react/edit/delete` | `ValidationError` / `UnsupportedOperationError` / wrapped |
+| `client.destroy()` | never rejects — internal failures are reported through `error` (context `disconnect during destroy`) |
+| `client.logout()` | backend logout/disconnect failures → `error`; a rejecting `sessionStore.clear()` rejects the call |
+| `client.messages.send(...)` | `ValidationError` (payload rules) / `MessageError` (bundled adapter) / `BackendError` |
+| `client.messages.react/edit/delete` | `ValidationError` / `UnsupportedOperationError` / `MessageError` |
 | `client.groups.*` | `ValidationError` / `UnsupportedOperationError` / `NotFoundError` / `PermissionError` / `BackendError` |
-| `attachment.download()` | `NotFoundError` (evicted from cache) / `BackendError` |
+| `attachment.download()` | `NotFoundError` (evicted from cache) / `MessageError` (download failure) |
 | `client.commands.register(...)` | `ValidationError` `ERR_INVALID_COMMAND_NAME` / `ERR_DUPLICATE_COMMAND` |
 | session stores | `ValidationError` `ERR_SESSION_ID` / `ERR_SESSION_CORRUPT` |
 | Baileys auth load | `ValidationError` (corrupt/unsupported/missing-creds session) — surfaces from `login()` |
@@ -127,7 +128,7 @@ flowchart TD
 
 - `command.execute` rejections → context `command "<name>"`
 - middleware throws → context `middleware`
-- listener rejections → context `listener for "<event>"`
+- listener rejections → context `listener for "<event>"` (except `interactionCreate` handlers → `interactionCreate listener`)
 - reconnect exhausted → `ConnectionError("Gave up reconnecting after N attempt(s) (reason).")`
 - backend logout failures during `client.logout()` → context `backend logout`
 
@@ -152,7 +153,7 @@ if (error instanceof WhatsAppError) throw error;      // pass library errors thr
 throw new BackendError(`${operation}: ${msg}`, { cause: error }); // wrap the rest
 ```
 
-So `catch (e) { if (e instanceof WhatsAppError) ... }` is always sufficient. `BackendError.cause` holds the original for debugging (log it, don't branch on it).
+Library-raised failures are `WhatsAppError` subclasses, so `catch (e) { if (e instanceof WhatsAppError) ... }` covers them. A raw `Error` can still escape unwrapped from `connect()` (provider or custom-backend throws pass through `toError` unchanged) — branch on `instanceof Error` for the rest. `BackendError.cause` holds the original for debugging (log it, don't branch on it).
 
 ## Capability errors
 
@@ -233,20 +234,22 @@ The default logger is `nullLogger` — **the library prints nothing**. Two indep
 | `error` event | programmatic reactions: alerts, metrics, user-facing messages |
 
 ```ts
-import { Client, createConsoleLogger } from "libwa";
+import { Client, createConsoleLogger, WhatsAppError } from "libwa";
 
 const client = new Client({
   logger: createConsoleLogger("bot"), // "bot error: …"
   commands: { prefix: "!" },
 });
-client.on("error", (e) => metrics.increment("bot.error").tag("code", e.code));
+client.on("error", (e) =>
+  metrics.increment("bot.error").tag("code", e instanceof WhatsAppError ? e.code : "UNKNOWN"),
+);
 ```
 
 Rules of thumb:
 
 - dev: `createConsoleLogger(prefix)` or a pino-backed `Logger`;
 - prod: always inject a real logger — otherwise failures exist only in the `error` event, and with no listeners, nowhere at all;
-- logger failures never propagate (the library swallows them).
+- logger calls are unguarded — a throwing logger propagates into the triggering operation, so keep your `Logger` total (never throw).
 
 ## Patterns
 

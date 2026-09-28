@@ -117,7 +117,7 @@ So N key updates in one tick → **one** `store.save`. Save failures are logged 
 ### QR (default)
 
 ```ts
-client.on("qr", (qr) => console.log(qr)); // render/scan within ~20s
+client.on("qr", (qr) => console.log(qr)); // render/scan promptly — first QR ~60s, later ones ~20s
 await client.login();
 ```
 

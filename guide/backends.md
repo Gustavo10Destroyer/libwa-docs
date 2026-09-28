@@ -66,7 +66,7 @@ logout?(): Promise<void>;
 ```
 
 <ApiNote kind="info" title="Why optional?">
-Providers genuinely differ. Honest optionality + runtime checks give better errors (`UnsupportedOperationError`) than pretending every backend can do everything. See <a href="/architecture/design-decisions#3-provider-behind-an-interface-with-optional-capabilities">decision #3</a>.
+Providers genuinely differ. Honest optionality + runtime checks give better errors (`UnsupportedOperationError`) than pretending every backend can do everything. See [decision #3](/architecture/design-decisions#_3-provider-behind-an-interface-with-optional-capabilities).
 </ApiNote>
 
 ### `BackendConnectOptions`
