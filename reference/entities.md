@@ -231,7 +231,7 @@ class User {
 <ApiTable
   :rows="[
     { name: 'id', type: 'UserId', description: 'WhatsApp user id: phone-number JID (5511999999999@s.whatsapp.net) or linked id (…@lid) — the two schemes of one account, explained on the ids page (UserId).' },
-    { name: 'name', type: 'string | undefined', description: 'Provider-reported display name at construction time (push name / profile name). Never a contact-list name — the library does not sync your address book.' },
+    { name: 'name', type: 'string | undefined', description: 'Provider-reported display name (push name / profile name). Remembered across events: once a name has been seen for an account, later id-only payloads answer with it too (either id scheme). Never a contact-list name — the library does not sync your address book.' },
     { name: 'isMe', type: 'boolean', description: 'True when this is the logged-in account (set by the factory).' },
     { name: 'phone', type: 'string | undefined (getter)', description: 'Phone digits: derived from the id when it is a phone JID, otherwise from a resolved LID ↔ phone pair (populated as pairs arrive, or via client.users.resolvePhone).' },
     { name: 'displayName', type: 'string (getter)', description: 'name → phone → id fallback chain. An unresolved linked id falls back to the raw …@lid value.' },
@@ -245,7 +245,7 @@ user.displayName;  // "Alice" → "5511999999999" → "5511999999999@s.whatsapp.
 user.equals("5511999999999@s.whatsapp.net");
 ```
 
-Users are value objects recreated per event — nothing is cached, so `phone` reflects the pairs known **when the event was built**. For lookups at any later point use [`client.users`](#userservice).
+Users are value objects recreated per event — nothing is cached, so `phone` reflects the pairs known **when the event was built**. Two things do carry over between events: `name`, remembered from the most recent payload that carried one (see [`client.users`](#userservice) for the id-only → named flow), and pairs recorded under the hood. For lookups at any later point use [`client.users`](#userservice).
 
 ## `phoneFromId` <ApiBadge kind="function" />
 
@@ -271,17 +271,19 @@ class UserService {
   altId(id: UserId): UserId | undefined;
   resolvePhone(id: UserId): Promise<string | undefined>;
   resolveLid(id: UserId): Promise<UserId | undefined>;
+  fetch(id: string): Promise<User | undefined>;
 }
 ```
 
-`client.users` — resolution between WhatsApp's two user-id schemes ([phone JID ↔ linked id](/reference/ids#userid)). Id pairs reported alongside messages, group metadata and membership events are recorded by the core as they arrive; these methods answer from that store first and only consult the backend's optional `getPhoneNumberForLid` / `getLidForPhoneNumber` capabilities when nothing is known yet.
+`client.users` — resolution between WhatsApp's two user-id schemes ([phone JID ↔ linked id](/reference/ids#userid)), plus account fetches. Id pairs reported alongside messages, group metadata and membership events are recorded by the core as they arrive; these methods answer from that store first and only consult the backend's optional `getPhoneNumberForLid` / `getLidForPhoneNumber` / `fetchUser` capabilities when nothing is known yet.
 
 <ApiTable
   :rows="[
     { name: 'phone', type: '(id) => string | undefined', description: 'Phone digits for an id — from the id itself or a recorded pair. Synchronous, no I/O; undefined when unknown.' },
     { name: 'altId', type: '(id) => UserId | undefined', description: 'The same account\u0027s id in the other scheme (LID ↔ phone JID), from recorded pairs. Synchronous, no I/O.' },
     { name: 'resolvePhone', type: '(id) => Promise<string | undefined>', description: 'Phone digits, asking the provider when no pair is known. Phone ids answer instantly; unsupported backends and unresolvable ids resolve undefined; provider failures throw BackendError.' },
-    { name: 'resolveLid', type: '(id) => Promise<UserId | undefined>', description: 'Linked id for a phone-number id, same fallback rules. A …@lid id answers with itself.' }
+    { name: 'resolveLid', type: '(id) => Promise<UserId | undefined>', description: 'Linked id for a phone-number id, same fallback rules. A …@lid id answers with itself.' },
+    { name: 'fetch', type: '(id) => Promise<User | undefined>', description: 'Account existence + name. Accepts a phone JID (…@s.whatsapp.net, legacy …@c.us, optional :device suffix), bare digits (optional +), or a …@lid. Lids resolve through recorded pairs / getPhoneNumberForLid first, then the phone digits are checked with the fetchUser capability. Resolves undefined when no account exists or the lid cannot be mapped.' }
   ]"
 />
 
@@ -292,7 +294,26 @@ const lid = await client.users.resolveLid("5511999999999@s.whatsapp.net"); // "�
 if (digits !== undefined) {
   await i.reply(`hello @${digits}`, { mentions: [i.author.id] });
 }
+
+// existence check under either id scheme — returns the User when the account exists
+const user = await client.users.fetch("5511999999999"); // or a full phone JID, or "…@lid"
+console.log(user?.id, user?.name);
 ```
+
+### `fetch(id)` in detail
+
+| Input | Example | Resolution |
+| --- | --- | --- |
+| phone JID | `5511999999999@s.whatsapp.net` | checked directly |
+| legacy / device suffix | `5511999999999@c.us`, `5511999999999:12@s.whatsapp.net` | canonicalized to `digits@s.whatsapp.net` |
+| bare digits | `5511999999999`, `+5511999999999` | normalized, then checked |
+| linked id | `123456789012345@lid` | recorded pair or `getPhoneNumberForLid` → phone digits → `fetchUser`; unresolvable → `undefined` |
+
+Rules:
+
+- **Return value mirrors the lookup contract.** `undefined` = no account (or an unresolvable lid); an existing account returns a `User` whose `name` prefers the lookup's `name` / `verifiedName` and otherwise falls back to the remembered push name.
+- **Capability, not a guess.** A backend without `fetchUser` raises `UnsupportedOperationError`; a backend without linked-id resolution raises `UnsupportedOperationError` for lids only. Existence is never assumed.
+- **Errors:** `ValidationError` `ERR_INVALID_USER_ID` (not one of the formats above), `UnsupportedOperationError` (missing capabilities), `BackendError` (provider failure — `WhatsAppError` subclasses pass through).
 
 <ApiNote kind="info" title="Mentions keep the id as received">
 Pass mention ids exactly as the event delivered them (a `…@lid` in a LID-addressed group) — that is already the scheme the chat uses. Use `resolvePhone` only for the human-readable `@…` text (see the [groups guide](/guide/groups#linked-ids-lids-and-mentions)).
@@ -308,7 +329,8 @@ class EntityFactory {
   recordIdPairs(pairs: readonly BackendIdPair[] | undefined): void;  // cross-scheme pairs only
   phoneFor(id: UserId): string | undefined;                          // id itself or recorded pair
   altIdFor(id: UserId): UserId | undefined;                          // counterpart in the other scheme
-  user(id: UserId, name?: string | undefined): User;                 // sets isMe + resolved phone
+  rememberName(id: UserId, name: string | undefined): void;          // store a display name under both id schemes
+  user(id: UserId, name?: string | undefined): User;                 // sets isMe + resolved phone; falls back to the remembered name
   selfUser(): User;
   chat(ref: ChatRef): Chat;                                   // picks Group for kind "group"
   knownChat(id: ChatId): Chat | undefined;
@@ -327,7 +349,7 @@ class EntityFactory {
 }
 ```
 
-Single place where raw backend shapes become entities; guarantees `Chat` vs `Group` selection, `isMe` tagging, and reference back-linking (`message.reference.chat` points at the same `Chat` instance). It also records LID ↔ phone-number id pairs (`recordIdPairs`, called from the interaction factory for every event's `idPairs` and from `applyGroupMetadata` for `GroupParticipant.altId`) so every `User` it builds carries a resolved `phone` when one is known. `applyGroupChanges` patches a cached group's metadata from a `groupUpdate` event (name/description/announceOnly/locked diff) so handlers see fresh values immediately. Called by `InteractionFactory`, `MessageService`, and the client; **not exported**.
+Single place where raw backend shapes become entities; guarantees `Chat` vs `Group` selection, `isMe` tagging, and reference back-linking (`message.reference.chat` points at the same `Chat` instance). It also records LID ↔ phone-number id pairs (`recordIdPairs`, called from the interaction factory for every event's `idPairs` and from `applyGroupMetadata` for `GroupParticipant.altId`) so every `User` it builds carries a resolved `phone` when one is known — and it keeps a **name memory**: every push name (and provider-supplied lookup name) is stored under both id schemes, so `user(id)` without a name still answers with the name seen earlier for that account (mentions, reaction authors, group members, fetch results). `applyGroupChanges` patches a cached group's metadata from a `groupUpdate` event (name/description/announceOnly/locked diff) so handlers see fresh values immediately. Called by `InteractionFactory`, `MessageService`, and the client; **not exported**.
 
 ## See also
 

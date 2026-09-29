@@ -83,6 +83,7 @@ Emit `ValidationError` with a specific `code` (overriding `ERR_VALIDATION`):
 | `ERR_EMPTY_REACTION` | `MessageService.reactTo` (empty emoji string) |
 | `ERR_EMPTY_GROUP_NAME` | `GroupService.rename("")` |
 | `ERR_EMPTY_USER_LIST` | `GroupService` participant ops with `[]` |
+| `ERR_INVALID_USER_ID` | `UserService.fetch` (id not a phone JID / bare digits / `…@lid`) |
 | `ERR_INVALID_PHONE` | `Client.requestPairingCode` |
 | `ERR_UNSUPPORTED` | same as `UnsupportedOperationError` but as validation |
 | `ERR_SESSION_ID` | `assertSafeSessionId` (bad slot id) |

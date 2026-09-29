@@ -38,9 +38,10 @@ interface WhatsAppBackend {
   requestPairingCode?(phoneNumber: string): Promise<string>;
   logout?(): Promise<void>;
 
-  // identity resolution (LID ↔ phone number)
+  // identity resolution (LID ↔ phone number) + account lookup
   getPhoneNumberForLid?(lid: UserId): Promise<string | null>;
   getLidForPhoneNumber?(phone: string): Promise<UserId | null>;
+  fetchUser?(phone: string): Promise<BackendUserLookup>;
 }
 ```
 
@@ -53,10 +54,23 @@ interface WhatsAppBackend {
 | events | `on` | required; core subscribes once per client |
 | optional ops | `react` `editMessage` `deleteMessage` `updateGroupParticipants` `updateGroupName` `updateGroupDescription` `requestPairingCode` | `UnsupportedOperationError` (`ERR_UNSUPPORTED`) from the service, or `ValidationError` for pairing codes |
 | identity | `getPhoneNumberForLid` `getLidForPhoneNumber` | no error — `client.users.resolvePhone`/`resolveLid` are lookups and resolve `undefined` when the capability is absent |
+| account lookup | `fetchUser` | `client.users.fetch` raises `UnsupportedOperationError` (`ERR_UNSUPPORTED`) — existence is checked, never assumed |
 
 Missing `logout` is the exception: `Client.logout()` silently skips the backend revocation when the method is absent (no error).
 
 The identity pair works the same way by design: `resolvePhone`/`resolveLid` first answer from id pairs the library recorded from events, then fall back to these methods (the Baileys adapter reads `signalRepository.lidMapping`), and resolve `undefined` when neither knows the mapping — a lid the provider has never seen simply has no phone number to give.
+
+`fetchUser(phone)` is the one lookup that reports back instead of resolving `undefined` — but only after `client.users` has already turned the input into **phone digits** (lids go through recorded pairs / `getPhoneNumberForLid` first, so a backend never receives a lid it cannot parse):
+
+```ts
+interface BackendUserLookup {
+  exists: boolean;        // false → fetch resolves undefined
+  name?: string;          // provider-known display name; wins over the remembered push name
+  verifiedName?: string;  // fallback name channel (used when name is absent)
+}
+```
+
+The bundled Baileys adapter implements it with WhatsApp's `onWhatsApp` query (`exists: results.some(entry => entry.exists)`).
 
 Capability detection in user code:
 
@@ -209,7 +223,7 @@ class MyBackend implements WhatsAppBackend {
 
   // optional: react, editMessage, deleteMessage, updateGroupParticipants,
   //           updateGroupName, updateGroupDescription, requestPairingCode, logout,
-  //           getPhoneNumberForLid, getLidForPhoneNumber
+  //           getPhoneNumberForLid, getLidForPhoneNumber, fetchUser
 }
 ```
 
@@ -220,7 +234,7 @@ Checklist:
 3. classify closes into [`DisconnectReason`](/reference/disconnect-reason) values (fatal ones especially);
 4. persist sessions **only** through the provided `sessionStore` (`Session { provider: id, data }`);
 5. keep event payloads pure library types (no provider JIDs leaking beyond id strings);
-6. when your provider reports both id schemes, fill `idPairs` (and `GroupParticipant.altId`) and consider implementing `getPhoneNumberForLid`/`getLidForPhoneNumber` — the core records pairs either way.
+6. when your provider reports both id schemes, fill `idPairs` (and `GroupParticipant.altId`) and consider implementing `getPhoneNumberForLid`/`getLidForPhoneNumber` — the core records pairs either way; if your provider can answer "does this phone number have an account", add `fetchUser` so `client.users.fetch` works against it.
 
 ## See also
 

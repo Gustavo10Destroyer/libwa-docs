@@ -32,7 +32,7 @@ WhatsApp has **two id schemes for the same account** ([JID vs LID](https://baile
 | Phone-number JID (PNJID) | `5511999999999@s.whatsapp.net` (legacy `@c.us`) | yes — digits are the id |
 | Linked id (LIDJID) | `123456789012345@lid` | no — opaque, assigned to hide the number |
 
-Which form arrives depends on the chat's addressing mode (modern groups are LID-addressed), so never assume digits. Both forms are produced by backends, compared with `===`, and interchangeable as far as the API is concerned — sending a message or a mention works with whichever id you were given. To cross from one scheme to the other, use [`client.users`](/reference/entities#userservice) (`phone` / `resolvePhone` / `altId` / `resolveLid`); events, group metadata and membership changes carry the raw pairs as `idPairs` / `GroupParticipant.altId` and the library records them automatically.
+Which form arrives depends on the chat's addressing mode (modern groups are LID-addressed), so never assume digits. Both forms are produced by backends, compared with `===`, and interchangeable as far as the API is concerned — sending a message or a mention works with whichever id you were given. To cross from one scheme to the other, use [`client.users`](/reference/entities#userservice) (`phone` / `resolvePhone` / `altId` / `resolveLid`; `fetch` checks an account's existence and name under either form); events, group metadata and membership changes carry the raw pairs as `idPairs` / `GroupParticipant.altId` and the library records them automatically.
 
 <ApiNote kind="info">
 The two aliases are structurally both <code>string</code> — TypeScript will not stop you from swapping them. The distinction is documentation: chat ids name conversations, user ids name accounts.
@@ -85,5 +85,5 @@ phoneFromId("123456789012345@lid");          // undefined (linked id — no digi
 ## See also
 
 - [Entities](/reference/entities) — `Chat`, `User`, `Message` built from ids
-- [UserService](/reference/entities#userservice) — resolving between id schemes
+- [UserService](/reference/entities#userservice) — resolving between id schemes, fetching accounts under either id
 - [Events](/reference/client-events) — `Unsubscribe` usage

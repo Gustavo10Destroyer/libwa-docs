@@ -99,7 +99,7 @@ The session slot this client uses (`ClientOptions.sessionId`, default `"default"
 | `messages` | `MessageService` | send / react / edit / delete ([reference](/reference/messaging)) |
 | `groups` | `GroupService` | metadata fetch + group management ([reference](/reference/groups)) |
 | `commands` | `CommandRegistry` | command registration & parsing ([reference](/reference/commands)) |
-| `users` | `UserService` | phone number ↔ linked id resolution ([reference](/reference/entities#userservice)) |
+| `users` | `UserService` | phone number ↔ linked id resolution, account fetches ([reference](/reference/entities#userservice)) |
 
 ## Methods
 
