@@ -67,6 +67,7 @@ logout?(): Promise<void>;
 // identity resolution — LID ↔ phone number (see "Linked ids" below)
 getPhoneNumberForLid?(lid: UserId): Promise<string | null>;
 getLidForPhoneNumber?(phone: string): Promise<UserId | null>;
+fetchUser?(phone: string): Promise<BackendUserLookup>; // existence + name for client.users.fetch
 ```
 
 <ApiNote kind="info" title="Why optional?">
@@ -78,10 +79,10 @@ Providers genuinely differ. Honest optionality + runtime checks give better erro
 WhatsApp identifies accounts either by phone number (`5511999999999@s.whatsapp.net`) or by an opaque linked id (`…@lid`) — [the two schemes refer to the same account](https://baileys.wiki/concepts/jids), and which one arrives depends on the chat. The library keeps them together three ways:
 
 1. **Pairs on events** — backends fill `idPairs` on `message`/`messageUpdate`/`reaction`/`groupParticipants` and `GroupParticipant.altId` on metadata whenever the provider delivered both forms; the client records every pair before dispatching the interaction.
-2. **`client.users`** — `phone()`/`altId()` answer from the recorded pairs instantly; `resolvePhone()`/`resolveLid()` fall back to the optional `getPhoneNumberForLid`/`getLidForPhoneNumber` capabilities above.
+2. **`client.users`** — `phone()`/`altId()` answer from the recorded pairs instantly; `resolvePhone()`/`resolveLid()` fall back to the optional `getPhoneNumberForLid`/`getLidForPhoneNumber` capabilities above; `fetch()` composes recorded pair → `getPhoneNumberForLid` → `fetchUser(phone)` to answer whether an account exists (and under which name).
 3. **Baileys does both out of the box** — the adapter reads the provider's `signalRepository.lidMapping` store (persisted with the session, with USync lookups for numbers it has never seen).
 
-A backend without the identity capabilities is still fully valid: `resolvePhone`/`resolveLid` simply resolve `undefined` for ids only it could have known.
+A backend without the identity capabilities is still fully valid: `resolvePhone`/`resolveLid` simply resolve `undefined` for ids only it could have known. `fetch` is stricter by design — without `fetchUser` it raises `UnsupportedOperationError`, because existence is something you check, never assume; Baileys implements it through WhatsApp's own `onWhatsApp` query.
 
 ### `BackendConnectOptions`
 

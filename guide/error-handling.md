@@ -118,6 +118,7 @@ flowchart TD
 | `client.logout()` | backend logout/disconnect failures → `error`; a rejecting `sessionStore.clear()` rejects the call |
 | `client.messages.send(...)` | `ValidationError` (payload rules) / `MessageError` (bundled adapter) / `BackendError` |
 | `client.messages.react/edit/delete` | `ValidationError` / `UnsupportedOperationError` / `MessageError` |
+| `client.users.fetch(...)` | `ValidationError` `ERR_INVALID_USER_ID` / `UnsupportedOperationError` (backend can't check) / `BackendError` |
 | `client.groups.*` | `ValidationError` / `UnsupportedOperationError` / `NotFoundError` / `PermissionError` / `BackendError` |
 | `attachment.download()` | `NotFoundError` (evicted from cache) / `MessageError` (download failure) |
 | `client.commands.register(...)` | `ValidationError` `ERR_INVALID_COMMAND_NAME` / `ERR_DUPLICATE_COMMAND` |
@@ -193,6 +194,7 @@ Master list of `ValidationError` codes:
 | `ERR_EMPTY_REACTION` | `MessageService.reactTo` | empty emoji string |
 | `ERR_EMPTY_GROUP_NAME` | `GroupService.rename` | empty name |
 | `ERR_EMPTY_USER_LIST` | `GroupService.#participants` | no users |
+| `ERR_INVALID_USER_ID` | `UserService.fetch` | id is not a phone JID (…@s.whatsapp.net / …@c.us, device suffix ok), bare digits (optional `+`), or `…@lid` |
 | `ERR_INVALID_PHONE` | `Client.requestPairingCode` | not `^\d{7,15}$` |
 | `ERR_UNSUPPORTED` | `Client.requestPairingCode` | backend lacks pairing codes |
 | `ERR_SESSION_ID` | `FileSessionStore` | slot id fails `^[A-Za-z0-9_-]{1,64}$` |

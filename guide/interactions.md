@@ -205,6 +205,10 @@ client.on("interactionCreate", async (i) => {
 });
 ```
 
+<ApiNote kind="info" title="Reaction payloads carry no push name">
+Provider reaction events ship only the target key and the emoji — no sender name. `i.author?.name` still answers from the library's **name memory** (the push name seen on that user's earlier messages, under either id scheme); with nothing remembered yet, `displayName` falls back to phone → id.
+</ApiNote>
+
 | Member | Notes |
 | --- | --- |
 | `messageId` | The reacted message. |

@@ -115,6 +115,7 @@ Skip = stop. A middleware that `return`s without `await next()` blocks commands 
 | `At least one user is required.` | pass ≥1 target to add/remove/promote/demote |
 | `Group name cannot be empty.` | `rename("")` invalid; `setDescription(undefined)` is how you *clear* |
 | metadata getters `undefined` | call `await group.refresh()` (or `client.groups.fetch`) first |
+| first message in a group never reaches handlers | update libwa — older builds dropped messages carrying the sender-key distribution beside their text (fixed: content wins over plumbing keys) |
 | `groupOnly` command silent in DM | by design; `interactionCreate` listeners still run |
 
 ## Disconnect reasons

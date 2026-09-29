@@ -349,7 +349,7 @@ The rules that keep mentions working:
 
 ```ts
 // 1. On demand — always fresh; this is what group interactions use internally
-const group = await client.groups.fetch("123456789@g.us");
+const group = await client.groups.fetch("120363012345678901"); // bare id works — @g.us is appended
 group.name; // group subject, e.g. "Weekend plans"
 group.displayName; // name ?? id — never empty
 
@@ -363,13 +363,15 @@ client.on("interactionCreate", (i) => {
 await group.refresh();
 ```
 
+`fetch` (and every other group method) accepts the id in any of its usual forms: a full `…@g.us` chat id, the bare number as it appears in a group link, or a `Group`/`Chat` entity you already hold.
+
 ### User names
 
 A `User` carries whatever name the provider supplied:
 
 | Accessor | Meaning |
 | --- | --- |
-| `user.name` | Known name, or `undefined` when the payload carried only an id |
+| `user.name` | Known name — remembered across events (either id scheme) once seen; `undefined` only when no name has ever arrived for that account |
 | `user.displayName` | `name` → `phone` → `id` — always something readable |
 | `user.phone` | Digits from a phone-number id, or from a resolved LID ↔ phone pair ([Linked ids](#linked-ids-lids-and-mentions)); `undefined` while unknown |
 | `user.id` | `5511999999999@s.whatsapp.net` or `123456789012345@lid` |
@@ -386,20 +388,25 @@ client.on("interactionCreate", (i) => {
 client.me?.name; // your own profile name
 ```
 
-Wherever a payload carried only an id (mentions, group actors), `user.name` starts out `undefined`. Accumulate names as you see them:
+Names are **remembered automatically**: every push name the library sees (a message's sender, a provider-supplied lookup name) is stored under both id schemes, so later id-only payloads still answer with `user.name` — the mention in a follow-up message, a reaction author, a group member fetched from metadata:
 
 ```ts
-const names = new Map<string, string>();
-
 client.on("interactionCreate", (i) => {
-  if (i.isMessage() && i.author?.name) {
-    names.set(i.author.id, i.author.name);
-  }
+  if (!i.isMessage()) return;
+  i.mentions[0]?.name; // "Gustavo" — remembered from that user's own earlier message, when one arrived
 });
-
-// later, for any user id:
-const label = names.get(someUserId) ?? "unknown";
 ```
+
+To ask the provider whether an account exists (and learn its current name), use `client.users.fetch`:
+
+```ts
+const user = await client.users.fetch("5511999999999"); // phone JID, bare digits or …@lid all work
+if (user) {
+  console.log(`${user.displayName} exists`); // "Gustavo" / phone / id fallback
+}
+```
+
+`fetch` resolves `undefined` when no account exists (or a linked id cannot be mapped), throws `ValidationError` (`ERR_INVALID_USER_ID`) for malformed ids, and `UnsupportedOperationError` when the backend cannot check — it never guesses. Full input table and error list in the [UserService reference](/reference/entities#userservice).
 
 ::: tip Contact-list names are not synced
 The name **you** saved in your phone's contact book ("Mom", "Ana — work") lives on your device and is **not** part of libwa's six normalized events — it cannot be read from a `User`. Use WhatsApp profile names (above) or keep your own `UserId → name` map. Group participants may carry a provider-supplied name on `GroupMetadata.participants[].name`, but it is commonly `undefined` with the Baileys backend; `displayName` always falls back gracefully (name → phone → id).
