@@ -103,12 +103,17 @@ After a successful rename/description update, cached metadata is patched immedia
 client.on("interactionCreate", async (i) => {
   if (!i.isGroupParticipantUpdate()) return;
 
+  // i.user = the affected participant (users[0]); i.users covers batches
   const who = i.users.map((u) => u.displayName).join(", ");
 
   if (i.isAdd) await i.reply(`Welcome ${who}!`);
   if (i.isRemove) console.log(`${who} left/was removed`);
   if (i.isPromote) console.log(`${who} promoted by ${i.author?.displayName ?? "?"}`);
   if (i.isDemote) console.log(`${who} demoted`);
+
+  // i.group.members / i.group.memberCount are current — metadata is
+  // fetched from the provider right before the interaction dispatches
+  console.log(`${i.group.name} now has ${i.group.memberCount} members`);
 });
 ```
 
@@ -120,7 +125,7 @@ Provider actions outside `add|remove|promote|demote` arrive as `action: "other"`
 client.on("interactionCreate", (i) => {
   if (!i.isGroupUpdate()) return;
   // i.changes: partial { name?, description?, announceOnly?, locked? }
-  // i.group already reflects the new values
+  // i.group already reflects the new values (metadata refreshed before dispatch)
 });
 ```
 

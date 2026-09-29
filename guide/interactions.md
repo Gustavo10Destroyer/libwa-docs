@@ -13,6 +13,7 @@ abstract class Interaction {
   readonly timestamp: Date;
   readonly client: Client;
   readonly chat: Chat;
+  readonly group: Group | undefined;         // defined when isFromGroup()
   readonly author: User | undefined;
   readonly isFromMe: boolean;
 
@@ -26,7 +27,7 @@ abstract class Interaction {
   isGroupUpdate(): this is GroupUpdateInteraction;
   isButton(): this is ButtonInteraction;
   isList(): this is ListInteraction;
-  isFromGroup(): boolean;
+  isFromGroup(): this is Interaction & { group: Group };
   isFromDirectChat(): boolean;
 }
 ```
@@ -40,6 +41,7 @@ abstract class Interaction {
 | `timestamp` | `Date` | When the underlying event happened (provider timestamps are converted from seconds; some updates fall back to `new Date()`). |
 | `client` | `Client` | The client that produced it — handy for `interaction.client.messages...`. |
 | `chat` | `Chat` | Where it happened. Identity is stable: the same chat id always yields the same cached `Chat` instance. |
+| `group` | `Group \| undefined` | The group when `isFromGroup()` is true — the same instance as `chat` for group interactions. `undefined` for direct chats. |
 | `author` | `User \| undefined` | Who caused it: message author, reactor, group actor. `undefined` when unknown (e.g. group metadata updates have no actor). |
 | `isFromMe` | `boolean` | True when the logged-in account caused it. |
 
@@ -59,11 +61,16 @@ Replies go through [`MessageService.send`](/reference/messaging#send) targeting 
 
 ### Chat-context guards
 
-`isFromGroup()` and `isFromDirectChat()` delegate to `chat.isGroup()` / `chat.isDirect()`. They return booleans (not type predicates) — the *chat* is what narrows:
+`isFromGroup()` is a type predicate: inside the guard, `interaction.group` is typed `Group`, so member lists and metadata are directly reachable. `isFromDirectChat()` returns a plain boolean, and `chat.isGroup()` still narrows the chat itself:
 
 ```ts
+if (interaction.isFromGroup()) {
+  const group: Group = interaction.group;          // narrowed
+  console.log(group.memberCount, group.members);
+}
+
 if (interaction.chat.isGroup()) {
-  const group: Group = interaction.chat; // narrowed
+  const group: Group = interaction.chat;           // narrowed
 }
 ```
 
@@ -251,7 +258,7 @@ client.on("interactionCreate", async (i) => {
 });
 ```
 
-`group` is the [`Group`](/reference/entities#group) entity; `users` are the affected participants; `author`/`actor` is who performed it (may be `undefined`); convenience getters: `isAdd`, `isRemove`, `isPromote`, `isDemote`.
+`group` is the [`Group`](/reference/entities#group) entity with **freshly fetched metadata** (the client refreshes it before dispatch, so `group.members` is current); `user` is the affected participant (`users[0]` — exactly who was added/removed/promoted/demoted for single-participant changes), `users` covers batches; `author` is who performed it (may be `undefined`); convenience getters: `isAdd`, `isRemove`, `isPromote`, `isDemote`.
 
 ## GroupUpdateInteraction
 
