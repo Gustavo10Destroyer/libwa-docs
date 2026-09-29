@@ -34,7 +34,7 @@ That snippet is a complete bot: it connects to WhatsApp (showing a QR code to sc
 
 Everything in libwa flows through a handful of ideas. You will use all of them:
 
-**[Client](/reference/client)** — the entry point. Owns the connection lifecycle, composes the services (`client.messages`, `client.groups`, `client.commands`), converts backend events into interactions, runs middleware, and dispatches to your listeners.
+**[Client](/reference/client)** — the entry point. Owns the connection lifecycle, composes the services (`client.messages`, `client.groups`, `client.commands`, `client.users`), converts backend events into interactions, runs middleware, and dispatches to your listeners.
 
 **[Interaction](/reference/interactions)** — something meaningful that happened: a message arrived, a command matched, someone reacted, group membership changed. Produced by the library from backend events; you narrow them with guards:
 
@@ -70,7 +70,7 @@ flowchart LR
         C[Client]
         F[InteractionFactory]
         M[Middleware chain]
-        S[Services: messages / groups / commands]
+        S[Services: messages / groups / commands / users]
         E[Entities: Chat / Group / Message / User]
         C --> F --> M --> S
         S --> E

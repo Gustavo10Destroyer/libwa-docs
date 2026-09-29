@@ -288,7 +288,7 @@ client.commands.register({
 
 Notes:
 
-- mentions are plain [`User`](/reference/entities#user) objects — the payload carries ids only, so `user.name` is usually `undefined` here and `displayName` falls back to the phone number (see [Fetching group and user names](#fetching-group-and-user-names) for name sources);
+- mentions are plain [`User`](/reference/entities#user) objects — the payload carries ids only, so `user.name` is usually `undefined` here and `displayName` falls back to the phone number, or to the raw `…@lid` id when no phone number is known (see [Fetching group and user names](#fetching-group-and-user-names) for name sources);
 - reactions, edits and group updates never carry mentions — guard with `i.isMessage()` first;
 - the bot can be mentioned too — check `user.isMe`.
 
@@ -318,6 +318,31 @@ client.on("interactionCreate", async (i) => {
 });
 ```
 
+### Linked ids (LIDs) and mentions
+
+WhatsApp addresses accounts in one of two ways — by phone number (`5511999999999@s.whatsapp.net`) or by an opaque linked id (`123456789012345@lid`) that hides the number ([JID vs LID explained](https://baileys.wiki/concepts/jids)). Modern groups are typically LID-addressed, so `i.author.id`, `i.mentions` and `group.members` may well be `…@lid` values with no digits in them.
+
+The rules that keep mentions working:
+
+- **Pass ids as received.** `mentions: [user]` works with whatever scheme the event delivered — WhatsApp expects the chat's own addressing form, so do *not* try to convert a lid into a phone JID before sending.
+- **Use `user.phone` for the `@…` text.** The library pairs ids with phone numbers as messages, metadata and membership events arrive, so `user.phone` is already resolved in most cases:
+
+  ```ts
+  await i.reply(`hello @${user.phone ?? user.displayName}`, { mentions: [user] });
+  ```
+
+- **Ask `client.users` for the rest.** When a pair has not arrived yet:
+
+  ```ts
+  const digits = await client.users.resolvePhone(user.id); // "5511999999999" | undefined
+  const lid = await client.users.resolveLid(user.id);      // "…@lid" | undefined (self for lids)
+  const knownLid = client.users.altId(user.id);            // recorded counterpart, no I/O
+  ```
+
+  `resolvePhone`/`resolveLid` answer from recorded pairs first, then ask the backend (Baileys resolves through its `lidMapping` store), and resolve `undefined` when nothing knows the mapping — fall back to `user.id` in the text, as the examples above do.
+
+- **`displayName` degrades honestly.** A lid without a name and without a resolved phone shows the raw `…@lid` id — prefer `user.phone ?? user.displayName` in user-facing text, never `user.id` directly.
+
 ## Fetching group and user names
 
 ### Group names
@@ -346,8 +371,8 @@ A `User` carries whatever name the provider supplied:
 | --- | --- |
 | `user.name` | Known name, or `undefined` when the payload carried only an id |
 | `user.displayName` | `name` → `phone` → `id` — always something readable |
-| `user.phone` | Digits from a standard id (`5511999999999`), else `undefined` |
-| `user.id` | e.g. `5511999999999@s.whatsapp.net` |
+| `user.phone` | Digits from a phone-number id, or from a resolved LID ↔ phone pair ([Linked ids](#linked-ids-lids-and-mentions)); `undefined` while unknown |
+| `user.id` | `5511999999999@s.whatsapp.net` or `123456789012345@lid` |
 
 **The display name the user customized on WhatsApp** (their profile name, also called the push name) arrives with every incoming message:
 

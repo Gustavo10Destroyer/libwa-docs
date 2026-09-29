@@ -92,7 +92,7 @@ Defaults applied when omitted:
 | `document.fileName` | `"document"` |
 | `audio.voice` | `false` |
 
-Mentions are collected from **both** `payload.mentions` and `options.mentions`, deduplicated, and passed to the backend.
+Mentions are collected from **both** `payload.mentions` and `options.mentions`, deduplicated, and passed to the backend. Ids may be phone-number jids or LIDs — pass them exactly as the event delivered them (see [Linked ids](/guide/groups#linked-ids-lids-and-mentions)).
 
 ### Send options
 

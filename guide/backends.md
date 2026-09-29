@@ -63,11 +63,25 @@ updateGroupName?(request): Promise<void>;
 updateGroupDescription?(request): Promise<void>;
 requestPairingCode?(phoneNumber: string): Promise<string>;
 logout?(): Promise<void>;
+
+// identity resolution — LID ↔ phone number (see "Linked ids" below)
+getPhoneNumberForLid?(lid: UserId): Promise<string | null>;
+getLidForPhoneNumber?(phone: string): Promise<UserId | null>;
 ```
 
 <ApiNote kind="info" title="Why optional?">
 Providers genuinely differ. Honest optionality + runtime checks give better errors (`UnsupportedOperationError`) than pretending every backend can do everything. See [decision #3](/architecture/design-decisions#_3-provider-behind-an-interface-with-optional-capabilities).
 </ApiNote>
+
+### Linked ids (LID ↔ phone number)
+
+WhatsApp identifies accounts either by phone number (`5511999999999@s.whatsapp.net`) or by an opaque linked id (`…@lid`) — [the two schemes refer to the same account](https://baileys.wiki/concepts/jids), and which one arrives depends on the chat. The library keeps them together three ways:
+
+1. **Pairs on events** — backends fill `idPairs` on `message`/`messageUpdate`/`reaction`/`groupParticipants` and `GroupParticipant.altId` on metadata whenever the provider delivered both forms; the client records every pair before dispatching the interaction.
+2. **`client.users`** — `phone()`/`altId()` answer from the recorded pairs instantly; `resolvePhone()`/`resolveLid()` fall back to the optional `getPhoneNumberForLid`/`getLidForPhoneNumber` capabilities above.
+3. **Baileys does both out of the box** — the adapter reads the provider's `signalRepository.lidMapping` store (persisted with the session, with USync lookups for numbers it has never seen).
+
+A backend without the identity capabilities is still fully valid: `resolvePhone`/`resolveLid` simply resolve `undefined` for ids only it could have known.
 
 ### `BackendConnectOptions`
 
@@ -103,6 +117,8 @@ Six normalized events (see [Backend contract reference](/reference/backend#backe
 | `connection` | `BackendConnectionUpdate` | `qr`/`pairingCode`/`ready`/`disconnect`/`reconnecting` |
 
 `connection` updates use `status: "connecting" | "open" | "close"`; `close` carries a library [`DisconnectReason`](/reference/disconnect-reason) — backends translate provider codes (the Baileys adapter maps Boom status codes and network errnos).
+
+Whenever a provider event carries both id schemes of the same account, fill the optional `idPairs` field (`message`/`messageUpdate`/`reaction`/`groupParticipants`) or `GroupParticipant.altId` (metadata) — the client records the pairs before dispatch, which is what makes `client.users` and `User.phone` work for linked ids.
 
 ## Writing your own backend
 
@@ -234,7 +250,7 @@ For the curious (all internal, under `src/backend/baileys/`):
 
 | File | Responsibility |
 | --- | --- |
-| `BaileysBackend.ts` | Socket lifecycle, event wiring, send/react/edit/delete/group ops, pairing, 500-entry raw-message LRU, provider content conversion. Module-private class exposed via `createBaileysBackend()`. |
+| `BaileysBackend.ts` | Socket lifecycle, event wiring, send/react/edit/delete/group ops, pairing, LID ↔ phone resolution via `signalRepository.lidMapping`, 500-entry raw-message LRU, provider content conversion. Module-private class exposed via `createBaileysBackend()`. |
 | `BaileysMapper.ts` | Pure payload → domain mapping (wrappers, timestamps, jids, all content kinds, reactions, group events). |
 | `BaileysAuth.ts` | `AuthenticationState` over `SessionStore`; coalesced writes; `BufferJSON`; app-state key revival. |
 | `BaileysDisconnect.ts` | Boom/status-code/errno → `DisconnectReason` translation. |
