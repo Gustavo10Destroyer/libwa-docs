@@ -8,7 +8,9 @@ flowchart TD
     B --> C["BaileysMapper<br/>provider payload → BackendEventMap payload (or null)"]
     C --> D["WhatsAppBackend events<br/>message · messageUpdate · reaction<br/>groupParticipants · groupUpdate · connection"]
     D --> E["Client subscriptions<br/>#subscribeBackend (once per instance)"]
-    E --> F["InteractionFactory<br/>domain event → Interaction<br/>(command parsing happens here)"]
+    E -->|"messages · reactions"| F["InteractionFactory<br/>domain event → Interaction<br/>(command parsing happens here)"]
+    E -->|"groupParticipants · groupUpdate"| RF["groups.fetch(groupId)<br/>fresh metadata · warn on failure"]
+    RF --> F
     F --> G["runMiddlewareChain<br/>ordered middlewares, may stop dispatch"]
     G --> H["command.execute()"]
     H --> I["interactionCreate listeners"]
@@ -53,6 +55,7 @@ sequenceDiagram
     P->>B: raw socket event
     B->>B: guards + map (or null)
     B->>C: connection | message | … (normalized)
+    Note over C: group events: groups.fetch (fresh metadata, warn on failure)
     C->>F: fromMessage | fromReaction | … (payload)
     F-->>C: Interaction
     C->>M: runMiddlewareChain(mws, i, last)
@@ -64,8 +67,9 @@ sequenceDiagram
 
 `Client.#subscribeBackend()` attaches the six listeners **once per instance** (guarded). Each payload:
 
-1. for message/reaction/update/group payloads, the matching `InteractionFactory.from*()` method → a concrete `Interaction` (never `null`; `ignoreSelf` only suppresses *command* promotion — the message still dispatches as a `MessageInteraction`). `connection` payloads go to the lifecycle logic instead;
-2. `void this.#dispatch(interaction)` — fire-and-forget with errors captured internally (message-shaped events only).
+1. for message/reaction/update payloads, the matching `InteractionFactory.from*()` method → a concrete `Interaction` (never `null`; `ignoreSelf` only suppresses *command* promotion — the message still dispatches as a `MessageInteraction`). `connection` payloads go to the lifecycle logic instead;
+2. **group payloads (`groupParticipants`, `groupUpdate`) first await `client.groups.fetch(groupId)`**, so the interaction's `group` carries current members/metadata at dispatch time. A failed refresh logs `[group refresh]` at warn level and dispatch proceeds with the cached state — it is never blocked or dropped;
+3. `void this.#dispatch(interaction)` — fire-and-forget with errors captured internally.
 
 ### 5. Middleware → command → listeners
 
