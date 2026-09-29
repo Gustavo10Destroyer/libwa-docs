@@ -29,7 +29,7 @@ new Client(options?: ClientOptions)
   ]"
 />
 
-**Composition performed in order:** resolve options → build `TypedEventEmitter` (with the error-recursion guard) → create backend (instance, factory call, or `createDefaultBackend()`) → create session store (`options.sessionStore ?? new FileSessionStore()`) → `EntityFactory` → `CommandRegistry` → `InteractionFactory` → `MessageService` / `GroupService`.
+**Composition performed in order:** resolve options → build `TypedEventEmitter` (with the error-recursion guard) → create backend (instance, factory call, or `createDefaultBackend()`) → create session store (`options.sessionStore ?? new FileSessionStore()`) → `EntityFactory` → `CommandRegistry` → `InteractionFactory` → `MessageService` / `GroupService` / `UserService`.
 
 **Throws:** `ValidationError` (`ERR_INVALID_PREFIX`) for an empty prefix list or an empty-string prefix.
 
@@ -99,6 +99,7 @@ The session slot this client uses (`ClientOptions.sessionId`, default `"default"
 | `messages` | `MessageService` | send / react / edit / delete ([reference](/reference/messaging)) |
 | `groups` | `GroupService` | metadata fetch + group management ([reference](/reference/groups)) |
 | `commands` | `CommandRegistry` | command registration & parsing ([reference](/reference/commands)) |
+| `users` | `UserService` | phone number ↔ linked id resolution ([reference](/reference/entities#userservice)) |
 
 ## Methods
 

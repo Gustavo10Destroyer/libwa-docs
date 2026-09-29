@@ -77,7 +77,7 @@ Each page documents signatures, parameters, return values, errors, and examples.
 | `ListInteraction` | class | [Interactions](/reference/interactions#listinteraction) |
 | `CommandParsingOptions` | interface | [Interactions](/reference/interactions#commandparsingoptions) |
 
-## Commands, messaging, groups, middleware
+## Services
 
 | Export | Kind | Page |
 | --- | --- | --- |
@@ -87,6 +87,7 @@ Each page documents signatures, parameters, return values, errors, and examples.
 | `MessageService`, `SendTarget` | class / type | [Messaging](/reference/messaging#messageservice) |
 | `MessagePayload`, `ReplyContent`, `SendOptions`, `MediaSource` | types | [Messaging](/reference/messaging#types) |
 | `GroupService`, `GroupTarget` | class / type | [Groups](/reference/groups#groupservice) |
+| `UserService` | class | [Entities](/reference/entities#userservice) |
 | `Middleware` | type | [Middleware](/reference/middleware#middleware) |
 
 ## Infrastructure
@@ -109,7 +110,7 @@ Each page documents signatures, parameters, return values, errors, and examples.
 | `BackendSendMessage`, `BackendSentMessage`, `BackendMediaDownload` | interfaces | [Backend](/reference/backend#requests) |
 | `BackendReactRequest`, `BackendEditMessageRequest`, `BackendDeleteMessageRequest` | interfaces | [Backend](/reference/backend#requests) |
 | `BackendGroupParticipantsRequest`, `BackendGroupNameRequest`, `BackendGroupDescriptionRequest` | interfaces | [Backend](/reference/backend#requests) |
-| `BackendEventMap` + event payloads | interfaces | [Backend](/reference/backend#backendeventmap) |
+| `BackendEventMap` + event payloads, `BackendIdPair` | interfaces | [Backend](/reference/backend#backendeventmap) |
 | `BackendEventName`, `BackendEventListener` | types | [Backend](/reference/backend#backendeventmap) |
 | `createDefaultBackend` | function | [Backend](/reference/backend#createdefaultbackend) |
 | `createBaileysBackend`, `BaileysBackendOptions` | function / interface | [Backend](/reference/backend#createbaileysbackend) |

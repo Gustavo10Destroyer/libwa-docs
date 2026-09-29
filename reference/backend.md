@@ -37,6 +37,10 @@ interface WhatsAppBackend {
   updateGroupDescription?(request: BackendGroupDescriptionRequest): Promise<void>;
   requestPairingCode?(phoneNumber: string): Promise<string>;
   logout?(): Promise<void>;
+
+  // identity resolution (LID ↔ phone number)
+  getPhoneNumberForLid?(lid: UserId): Promise<string | null>;
+  getLidForPhoneNumber?(phone: string): Promise<UserId | null>;
 }
 ```
 
@@ -48,8 +52,11 @@ interface WhatsAppBackend {
 | groups read | `getGroupMetadata` | required |
 | events | `on` | required; core subscribes once per client |
 | optional ops | `react` `editMessage` `deleteMessage` `updateGroupParticipants` `updateGroupName` `updateGroupDescription` `requestPairingCode` | `UnsupportedOperationError` (`ERR_UNSUPPORTED`) from the service, or `ValidationError` for pairing codes |
+| identity | `getPhoneNumberForLid` `getLidForPhoneNumber` | no error — `client.users.resolvePhone`/`resolveLid` are lookups and resolve `undefined` when the capability is absent |
 
 Missing `logout` is the exception: `Client.logout()` silently skips the backend revocation when the method is absent (no error).
+
+The identity pair works the same way by design: `resolvePhone`/`resolveLid` first answer from id pairs the library recorded from events, then fall back to these methods (the Baileys adapter reads `signalRepository.lidMapping`), and resolve `undefined` when neither knows the mapping — a lid the provider has never seen simply has no phone number to give.
 
 Capability detection in user code:
 
@@ -122,14 +129,16 @@ The six normalized events — the **only** channel through which state flows in.
 
 | Event | Payload highlights |
 | --- | --- |
-| `message` | `id`, `chatId`, `chatKind`, `authorId`, `authorName?`, `timestamp`, `content`, `isFromMe`, `isForwarded`, `mentions`, `reference?` |
-| `messageUpdate` | `action: "edit"\|"delete"`, `messageId`, `content?`, `authorId?` |
-| `reaction` | `messageId`, `reactorId`, `emoji: string \| null` (`null` = removed) |
-| `groupParticipants` | `groupId`, `action`, `participantIds`, `actorId?` |
+| `message` | `id`, `chatId`, `chatKind`, `authorId`, `authorName?`, `timestamp`, `content`, `isFromMe`, `isForwarded`, `mentions`, `reference?`, `idPairs?` |
+| `messageUpdate` | `action: "edit"\|"delete"`, `messageId`, `content?`, `authorId?`, `idPairs?` |
+| `reaction` | `messageId`, `reactorId`, `emoji: string \| null` (`null` = removed), `idPairs?` |
+| `groupParticipants` | `groupId`, `action`, `participantIds`, `actorId?`, `idPairs?` |
 | `groupUpdate` | `groupId`, `changes: GroupUpdateChanges` |
 | `connection` | `status: "connecting"\|"open"\|"close"`, `qr?`, `me?`, `reason?`, `detail?`, `pairingCode?` |
 
-Supporting types: `BackendMessageReference`, `BackendSelf` (`{ id, name? }`).
+`idPairs?` (type [`BackendIdPair`](#backendeventmap)) is the optional list of LID ↔ phone-number id pairs the provider attached to the event — message key, reaction/update key, actor and affected participants. The interaction factory records every pair before the interaction is built, so [`client.users`](/reference/entities#userservice) and `User.phone` know the mapping; backends that only ever see one scheme simply omit the field.
+
+Supporting types: `BackendMessageReference`, `BackendSelf` (`{ id, name? }`), `BackendIdPair` (`{ id, altId }` — two ids of the same account in different schemes).
 
 Event **listener type**: `BackendEventListener<Name> = (...args: BackendEventMap[Name]) => void`; `on()` returns an `Unsubscribe`.
 
@@ -199,7 +208,8 @@ class MyBackend implements WhatsAppBackend {
   }
 
   // optional: react, editMessage, deleteMessage, updateGroupParticipants,
-  //           updateGroupName, updateGroupDescription, requestPairingCode, logout
+  //           updateGroupName, updateGroupDescription, requestPairingCode, logout,
+  //           getPhoneNumberForLid, getLidForPhoneNumber
 }
 ```
 
@@ -209,7 +219,8 @@ Checklist:
 2. never let provider error classes escape — the services wrap unknown throws via `rethrowAsBackendError`;
 3. classify closes into [`DisconnectReason`](/reference/disconnect-reason) values (fatal ones especially);
 4. persist sessions **only** through the provided `sessionStore` (`Session { provider: id, data }`);
-5. keep event payloads pure library types (no provider JIDs leaking beyond id strings).
+5. keep event payloads pure library types (no provider JIDs leaking beyond id strings);
+6. when your provider reports both id schemes, fill `idPairs` (and `GroupParticipant.altId`) and consider implementing `getPhoneNumberForLid`/`getLidForPhoneNumber` — the core records pairs either way.
 
 ## See also
 
