@@ -119,6 +119,7 @@ flowchart TD
 | `client.messages.send(...)` | `ValidationError` (payload rules) / `MessageError` (bundled adapter) / `BackendError` |
 | `client.messages.react/edit/delete` | `ValidationError` / `UnsupportedOperationError` / `MessageError` |
 | `client.users.fetch(...)` | `ValidationError` `ERR_INVALID_USER_ID` / `UnsupportedOperationError` (backend can't check) / `BackendError` |
+| `client.users.pictureUrl/about/accountType(...)` | `ValidationError` `ERR_INVALID_USER_ID` / `UnsupportedOperationError` (backend can't answer) / `BackendError` — absent/private data resolves `undefined` instead of throwing |
 | `client.groups.*` | `ValidationError` / `UnsupportedOperationError` / `NotFoundError` / `PermissionError` / `BackendError` |
 | `attachment.download()` | `NotFoundError` (evicted from cache) / `MessageError` (download failure) |
 | `client.commands.register(...)` | `ValidationError` `ERR_INVALID_COMMAND_NAME` / `ERR_DUPLICATE_COMMAND` |

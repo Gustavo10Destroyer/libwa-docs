@@ -12,7 +12,7 @@ group.name;         // string | undefined (metadata name, else cached chat name)
 group.description;  // string | undefined
 group.owner;        // User | undefined
 group.memberCount;  // number | undefined
-group.members;      // readonly User[]
+group.members;      // readonly GroupMember[] — { user, role, tag }
 group.announceOnly; // boolean | undefined (only admins may post)
 group.metadata;     // GroupMetadata | undefined (full record)
 ```
@@ -32,7 +32,7 @@ interface GroupMetadata {
   readonly description: string | undefined;
   readonly ownerId: UserId | undefined;
   readonly createdAt: Date | undefined;
-  readonly participants: readonly GroupParticipant[]; // { id, role, name }
+  readonly participants: readonly GroupParticipant[]; // { id, altId, role, name, username }
   readonly announceOnly: boolean;
   readonly locked: boolean;
 }
@@ -50,7 +50,7 @@ if (chat.isGroup()) {
   group.applyMetadata(metadata);       // merge externally-fetched metadata
   group.description;
   group.members.forEach((m) => {
-    console.log(`${m.displayName} — ${m.isMe ? "me" : m.phone ?? m.id}`);
+    console.log(`${m.tag ?? m.user.displayName} (${m.role}) — ${m.user.isMe ? "me" : m.user.phone ?? m.user.id}`);
   });
 }
 ```
@@ -69,6 +69,50 @@ await group.setDescription("New description"); // undefined clears it
 ::: tip Identity
 Chats and groups are cached by id: `interaction.chat === interaction.message.chat`, and a group fetched twice is the same object. Cached metadata updates automatically when group-update events arrive (the factory applies changes *before* creating the interaction).
 :::
+
+## Membership roles and tags
+
+Roles and tags are **group-scoped**: the same account can be an `admin` in one group and a plain member in another — so they live on the group, never on [`User`](/reference/entities#user):
+
+```ts
+interface GroupMember {
+  readonly user: User;               // account-level entity — the same instance as interaction.author
+  readonly role: GroupRole;          // "member" | "admin" | "superadmin" — inside this group
+  readonly tag: string | undefined;  // this group's label: metadata name, else the @handle
+}
+```
+
+### On every interaction: `interaction.member`
+
+```ts
+client.on("interactionCreate", (i) => {
+  if (!i.isFromGroup()) return;
+
+  i.member?.role; // "admin" — the sender's role in this group
+  i.member?.tag; // "Gustavo" — how this group labels them
+  i.member?.user; // === i.author (same User instance)
+
+  if (i.member && i.member.role !== "member") await i.reply("Hello, admin!");
+});
+```
+
+`member` is computed from `group` + `author`, and is `undefined` when either side is missing: direct chats, author-less events (group metadata updates, some bulk deletes), authors that are not participants of the group, or group metadata the client does not know yet (it fetches metadata **once per group** before the first group message dispatches; participant/update events always refresh first).
+
+### On the group: `members` and `member()`
+
+```ts
+group.members;                      // readonly GroupMember[]
+group.member("222@s.whatsapp.net"); // GroupMember | undefined
+group.member(someUser);             // accepts User instances too
+
+// ids match across schemes — a phone id finds a …@lid participant (and back)
+group.member("987654321012345@lid")?.role; // → "superadmin"
+
+const bot = client.me && group.member(client.me);
+if (bot && bot.role !== "member") {
+  // the bot is admin here
+}
+```
 
 ## Membership operations (service level)
 
@@ -320,7 +364,7 @@ client.on("interactionCreate", async (i) => {
 
 ### Linked ids (LIDs) and mentions
 
-WhatsApp addresses accounts in one of two ways — by phone number (`5511999999999@s.whatsapp.net`) or by an opaque linked id (`123456789012345@lid`) that hides the number ([JID vs LID explained](https://baileys.wiki/concepts/jids)). Modern groups are typically LID-addressed, so `i.author.id`, `i.mentions` and `group.members` may well be `…@lid` values with no digits in them.
+WhatsApp addresses accounts in one of two ways — by phone number (`5511999999999@s.whatsapp.net`) or by an opaque linked id (`123456789012345@lid`) that hides the number ([JID vs LID explained](https://baileys.wiki/concepts/jids)). Modern groups are typically LID-addressed, so `i.author.id`, `i.mentions` and `group.members[].user.id` may well be `…@lid` values with no digits in them.
 
 The rules that keep mentions working:
 
@@ -408,6 +452,8 @@ if (user) {
 
 `fetch` resolves `undefined` when no account exists (or a linked id cannot be mapped), throws `ValidationError` (`ERR_INVALID_USER_ID`) for malformed ids, and `UnsupportedOperationError` when the backend cannot check — it never guesses. Full input table and error list in the [UserService reference](/reference/entities#userservice).
 
+Profile data rides the same ids, each behind its own optional capability: `client.users.pictureUrl(id, type?)` (profile picture URL, `undefined` when absent or private), `client.users.about(id)` (bio/status text) and `client.users.accountType(id)` (`"standard" | "business"`). They accept the same id forms as `fetch`; see [UserService](/reference/entities#userservice) for errors.
+
 ::: tip Contact-list names are not synced
 The name **you** saved in your phone's contact book ("Mom", "Ana — work") lives on your device and is **not** part of libwa's six normalized events — it cannot be read from a `User`. Use WhatsApp profile names (above) or keep your own `UserId → name` map. Group participants may carry a provider-supplied name on `GroupMetadata.participants[].name`, but it is commonly `undefined` with the Baileys backend; `displayName` always falls back gracefully (name → phone → id).
 :::
@@ -417,9 +463,8 @@ The name **you** saved in your phone's contact book ("Mom", "Ana — work") live
 ```ts
 const group = await client.groups.fetch(chat.id);
 if (group.announceOnly && !i.author?.isMe) {
-  const meIsAdmin = group.members.some(
-    (m) => m.id === group.owner?.id || /* compare against your own id */ false,
-  );
+  const mine = client.me ? group.member(client.me) : undefined;
+  const meIsAdmin = mine?.role === "admin" || mine?.role === "superadmin";
   // …moderation logic of your choosing
 }
 ```

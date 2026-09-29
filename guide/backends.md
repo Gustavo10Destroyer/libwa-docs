@@ -68,6 +68,11 @@ logout?(): Promise<void>;
 getPhoneNumberForLid?(lid: UserId): Promise<string | null>;
 getLidForPhoneNumber?(phone: string): Promise<UserId | null>;
 fetchUser?(phone: string): Promise<BackendUserLookup>; // existence + name for client.users.fetch
+
+// profile enrichment (either id scheme, see "Profile enrichment" below)
+getProfilePictureUrl?(id: UserId, type: ProfilePictureType): Promise<string | undefined>;
+getAbout?(id: UserId): Promise<string | undefined>;
+getBusinessProfile?(id: UserId): Promise<BackendBusinessProfile | undefined>;
 ```
 
 <ApiNote kind="info" title="Why optional?">
@@ -83,6 +88,18 @@ WhatsApp identifies accounts either by phone number (`5511999999999@s.whatsapp.n
 3. **Baileys does both out of the box** — the adapter reads the provider's `signalRepository.lidMapping` store (persisted with the session, with USync lookups for numbers it has never seen).
 
 A backend without the identity capabilities is still fully valid: `resolvePhone`/`resolveLid` simply resolve `undefined` for ids only it could have known. `fetch` is stricter by design — without `fetchUser` it raises `UnsupportedOperationError`, because existence is something you check, never assume; Baileys implements it through WhatsApp's own `onWhatsApp` query.
+
+### Profile enrichment
+
+Three optional capabilities answer user-facing profile data on demand — each gated by `client.users`:
+
+| Capability | Service method | Answers `undefined` when |
+| --- | --- | --- |
+| `getProfilePictureUrl(id, type)` | `client.users.pictureUrl(id, "image" \| "preview")` | picture absent or privacy-hidden |
+| `getAbout(id)` | `client.users.about(id)` | about/bio unset or hidden |
+| `getBusinessProfile(id)` | `client.users.accountType(id)` → `"standard" \| "business"` | probe found no business profile (a standard account) |
+
+Backends without them stay fully valid — the service raises `UnsupportedOperationError` instead of inventing data. With the capability, `undefined` means *genuinely no data* (the Baileys adapter maps privacy 401/403/404 responses to `undefined` for pictures and about texts). Full types in the [backend reference](/reference/backend).
 
 ### `BackendConnectOptions`
 
@@ -212,6 +229,8 @@ class MyBackend implements WhatsAppBackend {
   }
 
   // optional: react, editMessage, deleteMessage, ...
+  //           getPhoneNumberForLid, getLidForPhoneNumber, fetchUser,
+  //           getProfilePictureUrl, getAbout, getBusinessProfile
 }
 ```
 
