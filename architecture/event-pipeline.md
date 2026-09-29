@@ -37,7 +37,7 @@ flowchart TD
 
 - normalizes wrappers (ephemeral/view-once/device-sent/edit), timestamps (seconds/Long → `Date`), JIDs (device-suffix stripping);
 - every content type becomes a [`MessageContent`](/reference/content) union member;
-- **`null` means "no event"** — protocol messages, reaction stubs, poll updates, history upserts never surface.
+- **`null` means "no event"** — protocol messages, reaction stubs, poll updates, sender-key-distribution-only stanzas, history upserts never surface; content riding *alongside* plumbing keys (the first message in a group distributes the sender key next to its text) still arrives.
 
 ### 3. Backend event bus
 
@@ -112,7 +112,8 @@ flowchart LR
 ## Key properties
 
 - **Nothing provider-shaped crosses the boundary** — public types contain zero Baileys concepts (enforced by `npm run check:exports`).
-- **Null = no event** — unmappable payloads vanish instead of reaching handlers half-formed.
+- **Null = no event** — unmappable payloads vanish instead of reaching handlers half-formed, but real content is never shadowed by protocol/plumbing keys.
+- **Names travel with ids** — display names seen anywhere (a message's push name, a `fetchUser` result) are remembered under both id schemes, so later id-only payloads (mentions, reaction actors, group members) still carry `user.name`.
 - **Media stays lazy** — mappers attach `download()` closures over the raw-message LRU; apps see `Uint8Array` only when asked.
 - **Ordered and snapshot-isolated** — listeners run in registration order over a snapshot; unsubscribing mid-emit is safe.
 - **Errors are data** — dispatch failures surface on `error` with a context string, never as unhandled rejections.
