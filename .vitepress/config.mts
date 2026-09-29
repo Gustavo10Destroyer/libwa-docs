@@ -13,6 +13,7 @@ const BASE = "/libwa-docs/";
  *   /reference/      — exhaustive API reference (every export of `libwa`)
  *   /architecture/   — internal design, data flows, decision records
  *   /development/    — contributor workflow, tooling, conventions
+ *   /CHANGELOG       — versioned release notes for the libwa package
  *   /troubleshooting — diagnosing common failures
  */
 export default withMermaid(
@@ -59,6 +60,7 @@ export default withMermaid(
         { text: "Reference", link: "/reference/", activeMatch: "/reference/" },
         { text: "Architecture", link: "/architecture/overview", activeMatch: "/architecture/" },
         { text: "Development", link: "/development/repository", activeMatch: "/development/" },
+        { text: "Changelog", link: "/CHANGELOG", activeMatch: "/CHANGELOG" },
         { text: "Troubleshooting", link: "/troubleshooting", activeMatch: "/troubleshooting" },
       ],
 
@@ -178,6 +180,16 @@ export default withMermaid(
               { text: "Testing", link: "/development/testing" },
               { text: "Coding conventions", link: "/development/conventions" },
               { text: "Public API guard", link: "/development/public-api-guard" },
+            ],
+          },
+        ],
+
+        "/CHANGELOG": [
+          {
+            text: "Changelog",
+            items: [
+              { text: "0.2.0 (current)", link: "/CHANGELOG#_0-2-0-2026-09-29" },
+              { text: "0.1.0 (baseline)", link: "/CHANGELOG#_0-1-0-2026-09-27" },
             ],
           },
         ],
