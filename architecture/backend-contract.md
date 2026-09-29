@@ -37,7 +37,7 @@ Full annotated reference: [Backend API page](/reference/backend#whatsappbackend)
 | lifecycle | `connect` `disconnect` `isConnected` | `connect()` is **re-entrant** — the same instance must survive reconnects |
 | I/O | `sendMessage` `downloadMedia` `getGroupMetadata` | always present; provider failures must not leak provider error classes |
 | events | `on(event, listener) → Unsubscribe` | six normalized events, domain types only |
-| capabilities | `react?` `editMessage?` `deleteMessage?` `updateGroupParticipants?` `updateGroupName?` `updateGroupDescription?` `requestPairingCode?` `logout?` | checked before every call |
+| capabilities | `react?` `editMessage?` `deleteMessage?` `updateGroupParticipants?` `updateGroupName?` `updateGroupDescription?` `requestPairingCode?` `logout?` `getPhoneNumberForLid?` `getLidForPhoneNumber?` | checked before every call |
 
 ## Mandatory vs optional — why
 
@@ -47,7 +47,7 @@ Providers differ (reactions yes/no, pairing codes, edits). Making everything man
 - capability discovery in user code is honest: `if (client.backend.react) …`;
 - the contract is small enough to reimplement in ~200 lines (the repo's `MockBackend` test double does exactly that).
 
-Exception: missing `requestPairingCode` surfaces as `ValidationError` `ERR_UNSUPPORTED` from `Client.requestPairingCode` (a configuration problem, not a service op).
+Exception: missing `requestPairingCode` surfaces as `ValidationError` `ERR_UNSUPPORTED` from `Client.requestPairingCode` (a configuration problem, not a service op). The identity capabilities (`getPhoneNumberForLid`/`getLidForPhoneNumber`) are lookups, not operations — `client.users.resolvePhone`/`resolveLid` resolve `undefined` when they are absent instead of throwing.
 
 ## `BackendConnectOptions` — the lifeline
 
