@@ -49,7 +49,7 @@ libwa/
 
 ## Source inventory
 
-Roughly 5,900 lines of `src` across 45 TypeScript files (43 modules + 2 barrels), grouped by layer:
+Roughly 6,300 lines of `src` across 46 TypeScript files (44 modules + 2 barrels), grouped by layer:
 
 | Area | Files | Role |
 | --- | --- | --- |
@@ -57,30 +57,31 @@ Roughly 5,900 lines of `src` across 45 TypeScript files (43 modules + 2 barrels)
 | interactions | 11 | event classes + factory + `InteractionType` |
 | entities | 5 | domain objects + factory |
 | backend | 9 | contract (3) + Baileys adapter (6, incl. `index.ts` barrel) |
-| services | 6 | messaging (3), commands (2), groups (1) |
+| services | 7 | messaging (3), commands (2), groups (1), users (1) |
 | infrastructure | 11 | auth (3), core (3), events (2), middleware (1), errors (1), logging (1) |
 
 ## Tests
 
-13 suites, **189 tests**, ~2,900 lines + 300 lines of helpers:
+14 suites, **209 tests**, ~3,300 lines + 330 lines of helpers:
 
 | Suite | Focus |
 | --- | --- |
-| `client.test.ts` (26) | lifecycle, dispatch, reconnection, login/destroy/logout |
-| `baileys-mapper.test.ts` (44) | provider payload → domain mapping (largest suite) |
+| `client.test.ts` (28) | lifecycle, dispatch, reconnection, login/destroy/logout |
+| `baileys-mapper.test.ts` (50) | provider payload → domain mapping (largest suite) |
 | `messaging.test.ts` (18) | send/react/edit/delete paths |
-| `typed-event-emitter.test.ts` (11) | emitter semantics |
-| `interactions.test.ts` (16) | guards, factory, subclasses |
+| `interactions.test.ts` (18) | guards, factory, subclasses |
 | `commands.test.ts` (13) | registration + parsing |
+| `typed-event-emitter.test.ts` (11) | emitter semantics |
 | `baileys-auth.test.ts` (11) | session-backed auth state |
 | `payload.test.ts` (10) | `normalizeReplyContent` validation |
 | `session.test.ts` (10) | file/memory stores |
+| `users.test.ts` (10) | `client.users` id-pair recording + resolution |
 | `groups.test.ts` (9) | GroupService ops |
 | `errors.test.ts` (8) | hierarchy + wrapping |
 | `baileys-disconnect.test.ts` (8) | reason mapping |
 | `middleware.test.ts` (5) | chain semantics |
 
-Helpers: `MockBackend` / `CapableMockBackend` (201 lines — a ~200-line contract implementation) and `fixtures.ts` (backend event builders).
+Helpers: `MockBackend` / `CapableMockBackend` (235 lines — the mandatory contract plus every optional capability) and `fixtures.ts` (backend event builders).
 
 ## Examples
 

@@ -9,7 +9,7 @@ How `libwa` is tested: strategy, helpers, suite map, and what each layer guarant
 | runner | vitest 3 (`npm test` = `vitest run`) |
 | location | `tests/**/*.test.ts`, node environment |
 | config | `vitest.config.ts` — coverage excludes `src/backend/baileys/**` and `src/index.ts` |
-| totals | **13 files, 189 tests**, ~2s wall time |
+| totals | **14 files, 209 tests**, ~2s wall time |
 
 ## Strategy: contract tests, not provider integration
 
@@ -43,7 +43,7 @@ flowchart TD
 
 ## Helpers
 
-### `tests/helpers/MockBackend.ts` (201 lines)
+### `tests/helpers/MockBackend.ts` (235 lines)
 
 ```ts
 class MockBackend implements WhatsAppBackend { /* … */ }
@@ -64,14 +64,15 @@ Builders for every backend event: `messageEvent`, `reactionEvent`, `messageUpdat
 
 | Suite | Tests | Covers |
 | --- | --- | --- |
-| `client.test.ts` | 26 | state machine, dispatch order, middleware integration, error routing, login deferred, destroy/logout, reconnect (fake timers), pairing-code flow |
-| `baileys-mapper.test.ts` | 44 | every content kind, wrappers (ephemeral/view-once/edit/device-sent), timestamps, JID normalization, references, mentions, stub filtering |
+| `client.test.ts` | 28 | state machine, dispatch order, middleware integration, error routing, login deferred, destroy/logout, reconnect (fake timers), pairing-code flow |
+| `baileys-mapper.test.ts` | 50 | every content kind, wrappers (ephemeral/view-once/edit/device-sent), timestamps, JID normalization, references, mentions, stub filtering, LID ↔ phone id-pair capture |
 | `messaging.test.ts` | 18 | send target resolution, quotes, mentions, react/edit/delete, capability errors, entity reconstruction from `BackendSentMessage` |
-| `interactions.test.ts` | 16 | guards/narrowing, factory classification, subclass fields, `reply()` |
+| `interactions.test.ts` | 18 | guards/narrowing, factory classification, subclass fields, `reply()` |
 | `commands.test.ts` | 13 | name/alias validation, duplicates, parse algorithm, case folding |
 | `baileys-auth.test.ts` | 11 | `AuthenticationState` ⇄ store round-trips, coalescing, buffer JSON, app-state key revival |
 | `payload.test.ts` | 10 | `normalizeReplyContent`: empty/ambiguous/caption/media, mention merging |
 | `session.test.ts` | 10 | file store atomicity, id validation, corrupt JSON, memory store |
+| `users.test.ts` | 10 | `client.users`: id-pair recording (messages/metadata/membership), capability and capability-less resolution, scheme guards, error propagation |
 | `groups.test.ts` | 9 | fetch/apply metadata, participants ops, rename/description, unsupported paths |
 | `errors.test.ts` | 8 | codes, `cause`, `toError`, `rethrowAsBackendError` passthrough/wrap |
 | `baileys-disconnect.test.ts` | 8 | Boom codes, HTTP statuses, network errnos → `DisconnectReason` |
