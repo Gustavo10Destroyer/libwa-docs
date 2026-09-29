@@ -257,3 +257,196 @@ client.on("interactionCreate", (i) => {
 
 Description clears are normalized: the provider sends `desc: null`, libwa maps it to `changes.description === ""`.
 
+## Mentions
+
+Group messages can @-mention people. Mentions are handled in both directions: **reading** them from incoming messages and **sending** them with your own.
+
+### Reading mentions
+
+`MessageInteraction` (and therefore `CommandInteraction`) exposes `mentions` — the @-mentioned users, extracted from the incoming message:
+
+```ts
+client.on("interactionCreate", (i) => {
+  if (!i.isMessage()) return; // mentions exist only on message interactions
+  if (i.mentions.length === 0) return; // nobody was @-mentioned
+
+  for (const user of i.mentions) {
+    console.log(`mentioned: ${user.id} (${user.displayName})`);
+  }
+});
+
+client.commands.register({
+  name: "ban",
+  groupOnly: true,
+  async execute(i) {
+    const target = i.mentions[0]; // first @-mentioned user
+    if (!target) return void (await i.reply("Mention someone: !ban @user"));
+    // …
+  },
+});
+```
+
+Notes:
+
+- mentions are plain [`User`](/reference/entities#user) objects — the payload carries ids only, so `user.name` is usually `undefined` here and `displayName` falls back to the phone number (see [Fetching group and user names](#fetching-group-and-user-names) for name sources);
+- reactions, edits and group updates never carry mentions — guard with `i.isMessage()` first;
+- the bot can be mentioned too — check `user.isMe`.
+
+### Sending with mentions
+
+Put users in `mentions` — either on the payload or in `send`'s options (both are merged and deduplicated):
+
+```ts
+await i.reply({
+  text: `Welcome @${member.phone ?? member.id}!`,
+  mentions: [member], // MessagePayload.mentions
+});
+
+await client.messages.send(chat, "ping", { mentions: [member] }); // SendOptions.mentions
+```
+
+Welcome the affected member of a join event by mention — `i.user` again being the affected user:
+
+```ts
+client.on("interactionCreate", async (i) => {
+  if (!i.isGroupParticipantUpdate() || !i.isAdd || !i.user) return;
+
+  await i.reply({
+    text: `Welcome @${i.user.phone ?? i.user.id}!`,
+    mentions: [i.user],
+  });
+});
+```
+
+## Fetching group and user names
+
+### Group names
+
+```ts
+// 1. On demand — always fresh; this is what group interactions use internally
+const group = await client.groups.fetch("123456789@g.us");
+group.name; // group subject, e.g. "Weekend plans"
+group.displayName; // name ?? id — never empty
+
+// 2. From a group interaction — metadata was fetched before dispatch
+client.on("interactionCreate", (i) => {
+  if (!i.isGroupParticipantUpdate()) return;
+  console.log(i.group.name, i.group.memberCount);
+});
+
+// 3. Re-sync an entity you already hold
+await group.refresh();
+```
+
+### User names
+
+A `User` carries whatever name the provider supplied:
+
+| Accessor | Meaning |
+| --- | --- |
+| `user.name` | Known name, or `undefined` when the payload carried only an id |
+| `user.displayName` | `name` → `phone` → `id` — always something readable |
+| `user.phone` | Digits from a standard id (`5511999999999`), else `undefined` |
+| `user.id` | e.g. `5511999999999@s.whatsapp.net` |
+
+**The display name the user customized on WhatsApp** (their profile name, also called the push name) arrives with every incoming message:
+
+```ts
+client.on("interactionCreate", (i) => {
+  if (!i.isMessage()) return;
+  i.author?.name; // "Gustavo" — the sender's WhatsApp profile name
+  i.author?.displayName; // "Gustavo", or phone fallback when unknown
+});
+
+client.me?.name; // your own profile name
+```
+
+Wherever a payload carried only an id (mentions, group actors), `user.name` starts out `undefined`. Accumulate names as you see them:
+
+```ts
+const names = new Map<string, string>();
+
+client.on("interactionCreate", (i) => {
+  if (i.isMessage() && i.author?.name) {
+    names.set(i.author.id, i.author.name);
+  }
+});
+
+// later, for any user id:
+const label = names.get(someUserId) ?? "unknown";
+```
+
+::: tip Contact-list names are not synced
+The name **you** saved in your phone's contact book ("Mom", "Ana — work") lives on your device and is **not** part of libwa's six normalized events — it cannot be read from a `User`. Use WhatsApp profile names (above) or keep your own `UserId → name` map. Group participants may carry a provider-supplied name on `GroupMetadata.participants[].name`, but it is commonly `undefined` with the Baileys backend; `displayName` always falls back gracefully (name → phone → id).
+:::
+
+## Announce-only (admin) groups
+
+```ts
+const group = await client.groups.fetch(chat.id);
+if (group.announceOnly && !i.author?.isMe) {
+  const meIsAdmin = group.members.some(
+    (m) => m.id === group.owner?.id || /* compare against your own id */ false,
+  );
+  // …moderation logic of your choosing
+}
+```
+
+libwa deliberately does **not** ship a permissions engine: metadata tells you *what is*, your code decides *what to do*. A group-only command guard (`groupOnly: true`) covers the common case.
+
+## A complete group-aware command
+
+```ts
+import { Client, NotFoundError, PermissionError, type CommandInteraction } from "libwa";
+
+const client = new Client({ commands: { prefix: "!" } });
+
+client.commands.register({
+  name: "ban",
+  description: "Removes a mentioned user (admin only)",
+  groupOnly: true,
+  async execute(interaction: CommandInteraction) {
+    const chat = interaction.chat;
+    if (!chat.isGroup()) return; // compile-time narrowing
+
+    const target = interaction.mentions[0];
+    if (!target) {
+      await interaction.reply("Mention the user: !ban @someone");
+      return;
+    }
+
+    try {
+      await chat.removeMembers([target]);
+      await interaction.reply(`${target.displayName} removed.`);
+    } catch (error) {
+      if (error instanceof PermissionError) {
+        await interaction.reply("I need admin rights for that.");
+        return;
+      }
+      if (error instanceof NotFoundError) {
+        await interaction.reply("That user is not in this group.");
+        return;
+      }
+      throw error; // reported through the client error event
+    }
+  },
+});
+```
+
+## Backend capability matrix
+
+| Operation | Baileys backend | Capability method |
+| --- | --- | --- |
+| Fetch metadata | ✅ | `getGroupMetadata` (mandatory) |
+| Add/remove/promote/demote | ✅ | `updateGroupParticipants?` |
+| Rename | ✅ | `updateGroupName?` |
+| Set/clear description | ✅ | `updateGroupDescription?` |
+
+A backend without these makes the corresponding calls throw `UnsupportedOperationError` — feature-detect by attempting the call, or check the method on the backend instance (`client.backend.updateGroupName !== undefined`).
+
+## Related
+
+- [Entities reference](/reference/entities#group) — full `Group` API
+- [GroupService reference](/reference/groups) — full service API
+- [GroupParticipantInteraction](/reference/interactions#groupparticipantinteraction) / [GroupUpdateInteraction](/reference/interactions#groupupdateinteraction)
+- [Backend events](/reference/backend#backendeventmap) — the normalized events behind these interactions
