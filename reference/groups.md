@@ -13,7 +13,7 @@ await client.groups.addMembers(group, ["5511888888888@s.whatsapp.net"]);
 type GroupTarget = Group | ChatId;
 ```
 
-Every method accepts either a `Group` entity or a raw chat id string — internally `#chatId(target)` picks `.id` or the string itself.
+Every method accepts either a `Group` entity or a raw chat id string — internally `#chatId(target)` picks `.id` or the string itself, and appends `@g.us` when the bare id form is passed: `120363012345678901` or a legacy `120363012345678901-1601234567890` value (as it appears in a group link) become the canonical `…@g.us` chat id.
 
 ## GroupService <ApiBadge kind="class" />
 
@@ -40,12 +40,13 @@ Exposed as `client.groups`; constructed by the `Client`. `Group` entity methods 
 fetch(target): Promise<Group>
 ```
 
-Fetches full metadata and returns a **synchronized** `Group`: metadata applied, `name` cache updated, participants mapped to `User`s (with `isMe` set).
+Fetches full metadata and returns a **synchronized** `Group`: metadata applied, `name` cache updated, participants mapped to `User`s (with `isMe` set) — so a group fetched under a bare id round-trips with `group.id` in canonical `…@g.us` form.
 
-**Errors:** `BackendError` (context `Failed to fetch group <id>`).
+**Errors:** `NotFoundError` / `PermissionError` (library errors from the backend pass through: `ERR_NOT_FOUND` / `ERR_PERMISSION`) and `BackendError` otherwise (context `Failed to fetch group <id>`).
 
 ```ts
-const g = await client.groups.fetch(chat.id);
+const g = await client.groups.fetch("120363012345678901"); // bare id from a group link
+g.id; // "120363012345678901@g.us" — canonical form
 g.memberCount; g.announceOnly; g.owner?.displayName;
 ```
 
