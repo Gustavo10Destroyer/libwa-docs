@@ -130,7 +130,7 @@ A `Chat` with `kind` always `"group"` plus cached [`GroupMetadata`](#groupmetada
 
 | Getter | Type | Notes |
 | --- | --- | --- |
-| `metadata` | `GroupMetadata \| undefined` | Cached; `undefined` until fetched. |
+| `metadata` | `GroupMetadata \| undefined` | Cached; `undefined` until fetched. Group participant/update interactions arrive with it already fetched (see [event pipeline](/architecture/event-pipeline#_4-client-subscription)). |
 | `name` | `string \| undefined` (override) | Delegates to metadata, then parent cache. |
 | `description` | `string \| undefined` | From metadata. |
 | `owner` | `User \| undefined` | Built from `metadata.ownerId`. |
@@ -152,11 +152,11 @@ A `Chat` with `kind` always `"group"` plus cached [`GroupMetadata`](#groupmetada
 | `applyMetadata` | `(metadata: GroupMetadata) => void` *(internal)* | Writes metadata + name cache without a network call. |
 
 ```ts
-const group = interaction.chat.isGroup() ? interaction.chat : null;
-if (group) {
-  await group.refresh();
-  console.log(group.memberCount, group.announceOnly);
-  await group.addMembers(["5511888888888@s.whatsapp.net"]);
+if (interaction.isFromGroup()) {
+  // group interactions already carry freshly fetched metadata;
+  // call group.refresh() whenever you need to re-fetch
+  console.log(interaction.group.memberCount, interaction.group.announceOnly);
+  await interaction.group.addMembers(["5511888888888@s.whatsapp.net"]);
 }
 ```
 

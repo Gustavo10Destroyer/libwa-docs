@@ -23,6 +23,7 @@ Base class — never instantiated directly. Protected constructor: only subclass
     { name: 'timestamp', type: 'Date', description: 'When the event happened on the provider.' },
     { name: 'client', type: 'Client', description: 'Owning client — use for services, me, isReady.' },
     { name: 'chat', type: 'Chat', description: 'Chat the event belongs to. Direct or group — check isFromGroup().' },
+    { name: 'group', type: 'Group | undefined', description: 'The group when isFromGroup() is true (same instance as chat for group interactions); undefined for direct chats.' },
     { name: 'author', type: 'User | undefined', description: 'Who caused it. undefined for some system events; for own messages it is you.' },
     { name: 'isFromMe', type: 'boolean', description: 'True when the logged-in account is the author.' }
   ]"
@@ -42,12 +43,15 @@ All guards are `this is X` narrowing methods — safe to chain:
 | `isGroupUpdate()` | `GroupUpdateInteraction` |
 | `isButton()` | `ButtonInteraction` |
 | `isList()` | `ListInteraction` |
-| `isFromGroup()` | boolean — `chat.kind === "group"` |
+| `isFromGroup()` | narrows so `group` is `Group` (`Interaction & { group: Group }`) |
 | `isFromDirectChat()` | boolean — `chat.kind === "direct"` |
 
 ```ts
 if (i.isMessage() && i.isCommand() && i.name === "ping") {
   await i.reply("pong");
+}
+if (i.isFromGroup()) {
+  console.log(i.group.name, i.group.memberCount); // group is typed Group here
 }
 ```
 
@@ -226,19 +230,24 @@ Participants were added/removed/promoted/demoted in a group.
 
 <ApiTable
   :rows="[
-    { name: 'group', type: 'Group', description: 'Target group (richer than chat).' },
+    { name: 'group', type: 'Group', description: 'Target group — metadata is refreshed before dispatch, so members are current.' },
     { name: 'action', type: 'GroupParticipantAction', description: '&quot;add&quot; | &quot;remove&quot; | &quot;promote&quot; | &quot;demote&quot; | &quot;other&quot;.' },
-    { name: 'users', type: 'readonly User[]', description: 'Affected participants.' },
-    { name: 'actor', type: 'User | undefined', description: 'Who performed it, when known (system events → undefined).' },
+    { name: 'user', type: 'User | undefined (getter)', description: 'The affected user (users[0]) — exactly who was added/removed/promoted/demoted for single-participant changes.' },
+    { name: 'users', type: 'readonly User[]', description: 'Affected participants (all of them; batches possible).' },
+    { name: 'author', type: 'User | undefined', description: 'Who performed it, when known (system events → undefined).' },
     { name: 'isAdd / isRemove / isPromote / isDemote', type: 'boolean getters', description: 'Convenience narrowers over action.' }
   ]"
 />
 
 ```ts
 if (i.isGroupParticipantUpdate() && i.isRemove()) {
-  console.log("left:", i.users.map((u) => u.displayName).join(", "));
+  console.log(`left: ${i.user?.displayName}`, i.users.map((u) => u.displayName));
 }
 ```
+
+::: tip Fresh group data
+Before a group participant (or group update) interaction is dispatched, the client fetches the group's metadata from the provider. `i.group.members` / `i.group.memberCount` therefore reflect the group as of the event. If that refresh fails, the interaction is still dispatched with whatever metadata is cached (a warning is logged).
+:::
 
 ## GroupUpdateInteraction
 
@@ -250,7 +259,7 @@ Group metadata changed.
 
 <ApiTable
   :rows="[
-    { name: 'group', type: 'Group', description: 'Target group.' },
+    { name: 'group', type: 'Group', description: 'Target group — metadata refreshed before dispatch, changes applied on top.' },
     { name: 'changes', type: 'GroupUpdateChanges', description: 'Partial diff: { name?, description?, announceOnly?, locked? } — only changed keys present.' },
     { name: 'hasNameChange', type: 'boolean (getter)', description: 'changes.name !== undefined.' },
     { name: 'hasDescriptionChange', type: 'boolean (getter)', description: 'changes.description !== undefined.' }
