@@ -25,6 +25,7 @@ Base class — never instantiated directly. Protected constructor: only subclass
     { name: 'chat', type: 'Chat', description: 'Chat the event belongs to. Direct or group — check isFromGroup().' },
     { name: 'group', type: 'Group | undefined', description: 'The group when isFromGroup() is true (same instance as chat for group interactions); undefined for direct chats.' },
     { name: 'author', type: 'User | undefined', description: 'Who caused it. undefined for some system events; for own messages it is you.' },
+    { name: 'member', type: 'GroupMember | undefined', description: 'The author’s membership in the group — { user, role, tag }. undefined outside groups, for author-less events, or while group metadata is unknown.' },
     { name: 'isFromMe', type: 'boolean', description: 'True when the logged-in account is the author.' }
   ]"
 />
@@ -246,7 +247,7 @@ if (i.isGroupParticipantUpdate() && i.isRemove()) {
 ```
 
 ::: tip Fresh group data
-Before a group participant (or group update) interaction is dispatched, the client fetches the group's metadata from the provider. `i.group.members` / `i.group.memberCount` therefore reflect the group as of the event. If that refresh fails, the interaction is still dispatched with whatever metadata is cached (a warning is logged).
+Before a group participant (or group update) interaction is dispatched, the client fetches the group's metadata from the provider; message-family interactions (message, command, reaction, edit/delete) in a group fetch it too **once per group** — the first group event pays the round-trip, later ones reuse the cache. `i.group.members` / `i.group.memberCount` therefore reflect the group as of the event, and `i.member` answers with the author's `{ user, role, tag }`. If a refresh fails, the interaction is still dispatched with whatever metadata is cached (a warning is logged, `member` then stays `undefined`).
 :::
 
 ## GroupUpdateInteraction

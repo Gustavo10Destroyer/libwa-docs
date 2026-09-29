@@ -57,7 +57,7 @@ Each page documents signatures, parameters, return values, errors, and examples.
 | Export | Kind | Page |
 | --- | --- | --- |
 | `Chat`, `Group` | classes | [Entities](/reference/entities) |
-| `ChatKind`, `GroupMetadata`, `GroupParticipant`, `GroupRole`, `GroupParticipantAction`, `GroupUpdateChanges` | types | [Entities](/reference/entities#group-types) |
+| `ChatKind`, `GroupMember`, `GroupMetadata`, `GroupParticipant`, `GroupRole`, `GroupParticipantAction`, `GroupUpdateChanges` | types | [Entities](/reference/entities#group-types) |
 | `Message`, `MessageReference` | class / interface | [Entities](/reference/entities#message) |
 | `User`, `phoneFromId` | class / function | [Entities](/reference/entities#user) |
 
@@ -87,7 +87,7 @@ Each page documents signatures, parameters, return values, errors, and examples.
 | `MessageService`, `SendTarget` | class / type | [Messaging](/reference/messaging#messageservice) |
 | `MessagePayload`, `ReplyContent`, `SendOptions`, `MediaSource` | types | [Messaging](/reference/messaging#types) |
 | `GroupService`, `GroupTarget` | class / type | [Groups](/reference/groups#groupservice) |
-| `UserService` | class | [Entities](/reference/entities#userservice) |
+| `UserService`, `AccountType` | class / type | [Entities](/reference/entities#userservice) |
 | `Middleware` | type | [Middleware](/reference/middleware#middleware) |
 
 ## Infrastructure
@@ -112,6 +112,8 @@ Each page documents signatures, parameters, return values, errors, and examples.
 | `BackendGroupParticipantsRequest`, `BackendGroupNameRequest`, `BackendGroupDescriptionRequest` | interfaces | [Backend](/reference/backend#requests) |
 | `BackendEventMap` + event payloads, `BackendIdPair` | interfaces | [Backend](/reference/backend#backendeventmap) |
 | `BackendEventName`, `BackendEventListener` | types | [Backend](/reference/backend#backendeventmap) |
+| `BackendUserLookup` | interface | [Backend](/reference/backend#account-lookup-type) |
+| `BackendBusinessProfile`, `ProfilePictureType` | interface / type | [Backend](/reference/backend#profile-enrichment-types) |
 | `createDefaultBackend` | function | [Backend](/reference/backend#createdefaultbackend) |
 | `createBaileysBackend`, `BaileysBackendOptions` | function / interface | [Backend](/reference/backend#createbaileysbackend) |
 

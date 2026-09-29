@@ -74,10 +74,23 @@ interface GroupParticipant {
   readonly altId?: UserId | undefined;
   readonly role: GroupRole;         // "member" | "admin" | "superadmin"
   readonly name: string | undefined;
+  readonly username?: string | undefined;
 }
 ```
 
-`id` is the member's id in whatever scheme the provider reported for this group — phone-number JID or [linked id](/reference/ids#userid). `altId` is the same member's id in the *other* scheme (LID ↔ phone number), present when the provider delivered both forms; it is what lets you resolve a phone number for a linked id even for members who later leave the group.
+`id` is the member's id in whatever scheme the provider reported for this group — phone-number JID or [linked id](/reference/ids#userid). `altId` is the same member's id in the *other* scheme (LID ↔ phone number), present when the provider delivered both forms; it is what lets you resolve a phone number for a linked id even for members who later leave the group. `name` is the participant label from group metadata, `username` the member's `@handle` — both feed [`GroupMember.tag`](#groupmember).
+
+### `GroupMember`
+
+```ts
+interface GroupMember {
+  readonly user: User;              // account-level entity — same instance as interaction.author
+  readonly role: GroupRole;         // inside this group only
+  readonly tag: string | undefined; // metadata name, else @handle
+}
+```
+
+Membership is **group-scoped**: roles and tags differ per group, so they never live on [`User`](#user). Produced by [`Group.members`](#metadata-accessors) and [`Group.member()`](#methods), and attached to every group interaction as [`interaction.member`](/reference/interactions#interaction).
 
 ### `GroupRole`
 
@@ -137,7 +150,7 @@ A `Chat` with `kind` always `"group"` plus cached [`GroupMetadata`](#groupmetada
 | `name` | `string \| undefined` (override) | Delegates to metadata, then parent cache. |
 | `description` | `string \| undefined` | From metadata. |
 | `owner` | `User \| undefined` | Built from `metadata.ownerId`. |
-| `members` | `readonly User[]` | Built from `metadata.participants` (with `isMe` set). |
+| `members` | `readonly GroupMember[]` | Built from `metadata.participants` — each entry pairs the account's `User` with its `role` and `tag` here (empty until metadata is fetched). |
 | `memberCount` | `number \| undefined` | `members.length` when metadata present. |
 | `announceOnly` | `boolean \| undefined` | From metadata. |
 
@@ -145,6 +158,7 @@ A `Chat` with `kind` always `"group"` plus cached [`GroupMetadata`](#groupmetada
 
 | Method | Signature | Description |
 | --- | --- | --- |
+| `member` | `(target: User \| UserId) => GroupMember \| undefined` | Membership of one account here: accepts a `User` (kept as-is inside the member) or a raw id in either scheme — ids match across schemes through recorded id pairs. `undefined` while metadata is unknown or the account is not a participant. |
 | `refresh` | `(): Promise<this>` | Fetches metadata via `client.groups.fetch`, applies it (also refreshes `name`), returns `this`. |
 | `addMembers` | `(users: (User \| UserId)[]) => Promise<void>` | Admin-only; delegates to `GroupService.addMembers`. |
 | `removeMembers` | `(users: (User \| UserId)[]) => Promise<void>` | Admin-only. |
@@ -159,6 +173,8 @@ if (interaction.isFromGroup()) {
   // group interactions already carry freshly fetched metadata;
   // call group.refresh() whenever you need to re-fetch
   console.log(interaction.group.memberCount, interaction.group.announceOnly);
+  interaction.member?.role;                 // the author's role in this group
+  interaction.group.member("222@s.whatsapp.net")?.tag;
   await interaction.group.addMembers(["5511888888888@s.whatsapp.net"]);
 }
 ```
@@ -272,10 +288,13 @@ class UserService {
   resolvePhone(id: UserId): Promise<string | undefined>;
   resolveLid(id: UserId): Promise<UserId | undefined>;
   fetch(id: string): Promise<User | undefined>;
+  pictureUrl(id: string, type?: ProfilePictureType): Promise<string | undefined>;
+  about(id: string): Promise<string | undefined>;
+  accountType(id: string): Promise<AccountType>;
 }
 ```
 
-`client.users` — resolution between WhatsApp's two user-id schemes ([phone JID ↔ linked id](/reference/ids#userid)), plus account fetches. Id pairs reported alongside messages, group metadata and membership events are recorded by the core as they arrive; these methods answer from that store first and only consult the backend's optional `getPhoneNumberForLid` / `getLidForPhoneNumber` / `fetchUser` capabilities when nothing is known yet.
+`client.users` — resolution between WhatsApp's two user-id schemes ([phone JID ↔ linked id](/reference/ids#userid)), plus account fetches and profile enrichment. Id pairs reported alongside messages, group metadata and membership events are recorded by the core as they arrive; these methods answer from that store first and only consult the backend's optional `getPhoneNumberForLid` / `getLidForPhoneNumber` / `fetchUser` / `getProfilePictureUrl` / `getAbout` / `getBusinessProfile` capabilities when nothing is known yet.
 
 <ApiTable
   :rows="[
@@ -283,7 +302,10 @@ class UserService {
     { name: 'altId', type: '(id) => UserId | undefined', description: 'The same account\u0027s id in the other scheme (LID ↔ phone JID), from recorded pairs. Synchronous, no I/O.' },
     { name: 'resolvePhone', type: '(id) => Promise<string | undefined>', description: 'Phone digits, asking the provider when no pair is known. Phone ids answer instantly; unsupported backends and unresolvable ids resolve undefined; provider failures throw BackendError.' },
     { name: 'resolveLid', type: '(id) => Promise<UserId | undefined>', description: 'Linked id for a phone-number id, same fallback rules. A …@lid id answers with itself.' },
-    { name: 'fetch', type: '(id) => Promise<User | undefined>', description: 'Account existence + name. Accepts a phone JID (…@s.whatsapp.net, legacy …@c.us, optional :device suffix), bare digits (optional +), or a …@lid. Lids resolve through recorded pairs / getPhoneNumberForLid first, then the phone digits are checked with the fetchUser capability. Resolves undefined when no account exists or the lid cannot be mapped.' }
+    { name: 'fetch', type: '(id) => Promise<User | undefined>', description: 'Account existence + name. Accepts a phone JID (…@s.whatsapp.net, legacy …@c.us, optional :device suffix), bare digits (optional +), or a …@lid. Lids resolve through recorded pairs / getPhoneNumberForLid first, then the phone digits are checked with the fetchUser capability. Resolves undefined when no account exists or the lid cannot be mapped.' },
+    { name: 'pictureUrl', type: '(id, type?) => Promise<string | undefined>', description: 'Profile-picture URL (type: \u0022image\u0022 (default, full size) or \u0022preview\u0022). Same id forms as fetch. undefined when the picture is absent or private. Capability: getProfilePictureUrl.' },
+    { name: 'about', type: '(id) => Promise<string | undefined>', description: 'About/bio text (\u0022status\u0022). Same id forms as fetch. undefined when unset or hidden. Capability: getAbout.' },
+    { name: 'accountType', type: '(id) => Promise<AccountType>', description: '\u0022business\u0022 when the provider reports a business profile, \u0022standard\u0022 when the probe finds none. Same id forms as fetch. Capability: getBusinessProfile (classification is a probe — one extra round-trip).' }
   ]"
 />
 
@@ -318,6 +340,26 @@ Rules:
 <ApiNote kind="info" title="Mentions keep the id as received">
 Pass mention ids exactly as the event delivered them (a `…@lid` in a LID-addressed group) — that is already the scheme the chat uses. Use `resolvePhone` only for the human-readable `@…` text (see the [groups guide](/guide/groups#linked-ids-lids-and-mentions)).
 </ApiNote>
+
+### Profile enrichment in detail
+
+```ts
+await client.users.pictureUrl("5511999999999");            // "https://…" | undefined
+await client.users.pictureUrl(user.id, "preview");         // small variant
+await client.users.about(user.id);                         // "living la vida loca" | undefined
+await client.users.accountType(user.id);                   // "standard" | "business"
+```
+
+- **Same input table as [`fetch(id)`](#fetch-id-in-detail)** — phone JID, legacy/device suffix, bare digits, `+…`, or `…@lid`; anything else throws `ValidationError` (`ERR_INVALID_USER_ID`) before any I/O.
+- **`pictureUrl`** — `type` is `"image"` (default, full size) or `"preview"`. The URL comes straight from the provider: fetch and cache it yourself; the library never downloads pictures. Absent or privacy-hidden pictures resolve `undefined`.
+- **`about`** — the account's about/bio text (WhatsApp's "status"). Unset, hidden (`""` from the provider) or unknown resolve `undefined`.
+- **`accountType`** — `AccountType = "standard" | "business"`. Providers expose no single "business flag", so this probes the business profile: a profile found → `"business"`, probe completed without one → `"standard"`.
+- **Errors:** `UnsupportedOperationError` (backend lacks `getProfilePictureUrl` / `getAbout` / `getBusinessProfile`), `BackendError` on provider failures, `ValidationError` (`ERR_INVALID_USER_ID`) for malformed ids.
+
+```ts
+const url = await client.users.pictureUrl(user.id).catch(() => undefined);
+const type = await client.users.accountType(user.id); // may throw UnsupportedOperationError
+```
 
 ## EntityFactory <ApiBadge kind="internal" />
 

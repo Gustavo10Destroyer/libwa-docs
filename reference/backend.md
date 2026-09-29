@@ -42,6 +42,11 @@ interface WhatsAppBackend {
   getPhoneNumberForLid?(lid: UserId): Promise<string | null>;
   getLidForPhoneNumber?(phone: string): Promise<UserId | null>;
   fetchUser?(phone: string): Promise<BackendUserLookup>;
+
+  // profile enrichment (either id scheme)
+  getProfilePictureUrl?(id: UserId, type: ProfilePictureType): Promise<string | undefined>;
+  getAbout?(id: UserId): Promise<string | undefined>;
+  getBusinessProfile?(id: UserId): Promise<BackendBusinessProfile | undefined>;
 }
 ```
 
@@ -55,10 +60,13 @@ interface WhatsAppBackend {
 | optional ops | `react` `editMessage` `deleteMessage` `updateGroupParticipants` `updateGroupName` `updateGroupDescription` `requestPairingCode` | `UnsupportedOperationError` (`ERR_UNSUPPORTED`) from the service, or `ValidationError` for pairing codes |
 | identity | `getPhoneNumberForLid` `getLidForPhoneNumber` | no error — `client.users.resolvePhone`/`resolveLid` are lookups and resolve `undefined` when the capability is absent |
 | account lookup | `fetchUser` | `client.users.fetch` raises `UnsupportedOperationError` (`ERR_UNSUPPORTED`) — existence is checked, never assumed |
+| profile enrichment | `getProfilePictureUrl` `getAbout` `getBusinessProfile` | `client.users.pictureUrl` / `about` / `accountType` raise `UnsupportedOperationError` (`ERR_UNSUPPORTED`); *with* the capability, genuinely missing/hidden data resolves `undefined` (never conflated with a missing capability) |
 
 Missing `logout` is the exception: `Client.logout()` silently skips the backend revocation when the method is absent (no error).
 
 The identity pair works the same way by design: `resolvePhone`/`resolveLid` first answer from id pairs the library recorded from events, then fall back to these methods (the Baileys adapter reads `signalRepository.lidMapping`), and resolve `undefined` when neither knows the mapping — a lid the provider has never seen simply has no phone number to give.
+
+### Account lookup type
 
 `fetchUser(phone)` is the one lookup that reports back instead of resolving `undefined` — but only after `client.users` has already turned the input into **phone digits** (lids go through recorded pairs / `getPhoneNumberForLid` first, so a backend never receives a lid it cannot parse):
 
@@ -71,6 +79,28 @@ interface BackendUserLookup {
 ```
 
 The bundled Baileys adapter implements it with WhatsApp's `onWhatsApp` query (`exists: results.some(entry => entry.exists)`).
+
+### Profile enrichment types
+
+Three independent lookups, each answering data-or-`undefined`:
+
+```ts
+type ProfilePictureType = "image" | "preview";
+
+interface BackendBusinessProfile {
+  description: string;                 // "" when the provider supplies none
+  category: string | undefined;
+  email: string | undefined;
+  website: readonly string[];
+  address: string | undefined;
+}
+```
+
+- **`getProfilePictureUrl(id, type)`** — URL for `"image"` (default) or `"preview"`; `undefined` when the picture is absent or privacy-hidden (the Baileys adapter maps 401/403/404 to `undefined`).
+- **`getAbout(id)`** — about/bio text; `undefined` when unset or hidden (`""` from the provider).
+- **`getBusinessProfile(id)`** — business profile; `undefined` when the probe completes without one (a standard account). Failures throw; the Baileys adapter resolves `…@lid` inputs to phone numbers first and raises `BackendError` when the provider cannot map them.
+
+All three accept either id scheme — [`client.users`](/reference/entities#userservice) normalizes user input before delegating.
 
 Capability detection in user code:
 
@@ -223,7 +253,8 @@ class MyBackend implements WhatsAppBackend {
 
   // optional: react, editMessage, deleteMessage, updateGroupParticipants,
   //           updateGroupName, updateGroupDescription, requestPairingCode, logout,
-  //           getPhoneNumberForLid, getLidForPhoneNumber, fetchUser
+  //           getPhoneNumberForLid, getLidForPhoneNumber, fetchUser,
+  //           getProfilePictureUrl, getAbout, getBusinessProfile
 }
 ```
 
@@ -234,7 +265,7 @@ Checklist:
 3. classify closes into [`DisconnectReason`](/reference/disconnect-reason) values (fatal ones especially);
 4. persist sessions **only** through the provided `sessionStore` (`Session { provider: id, data }`);
 5. keep event payloads pure library types (no provider JIDs leaking beyond id strings);
-6. when your provider reports both id schemes, fill `idPairs` (and `GroupParticipant.altId`) and consider implementing `getPhoneNumberForLid`/`getLidForPhoneNumber` — the core records pairs either way; if your provider can answer "does this phone number have an account", add `fetchUser` so `client.users.fetch` works against it.
+6. when your provider reports both id schemes, fill `idPairs` (and `GroupParticipant.altId`) and consider implementing `getPhoneNumberForLid`/`getLidForPhoneNumber` — the core records pairs either way; if your provider can answer "does this phone number have an account", add `fetchUser` so `client.users.fetch` works against it; profile data (pictures, about texts, business classification) is opt-in via `getProfilePictureUrl`/`getAbout`/`getBusinessProfile`.
 
 ## See also
 
