@@ -95,26 +95,152 @@ Validation and capability checks happen up front:
 
 After a successful rename/description update, cached metadata is patched immediately (no refetch needed).
 
-## Reacting to group events
+## Detecting group interactions
 
-### Membership changes
+### The event: `interactionCreate`
+
+Every group interaction — membership changes, metadata changes, plain group messages — arrives on the single [`interactionCreate`](/guide/events) event. libwa's event set is deliberately closed: there is **no** separate `groupAdd`/`groupRemove`/`groupPromote` event. Register one listener and filter with the type guards:
 
 ```ts
 client.on("interactionCreate", async (i) => {
+  if (!i.isFromGroup()) return; // only group chats (narrows i.group to Group)
+
+  if (i.isGroupParticipantUpdate()) {
+    // membership changed — i.action, i.user, i.users, i.author, i.group
+  } else if (i.isGroupUpdate()) {
+    // metadata changed — i.changes, i.group
+  } else if (i.isMessage()) {
+    // ordinary group message — i.text, i.mentions
+  }
+});
+```
+
+### Filtering
+
+| Filter | How |
+| --- | --- |
+| group chats only | `i.isFromGroup()` — also narrows `i.group` to `Group` |
+| membership changes (add/remove/promote/demote) | `i.isGroupParticipantUpdate()` |
+| metadata changes (name/description/settings) | `i.isGroupUpdate()` |
+| one specific group | after a guard: `i.group.id === "123456789@g.us"` |
+| one specific action | `i.action === "add"` (or the `i.isAdd` getter) |
+| messages sent in groups | `i.isFromGroup() && i.isMessage()` |
+
+```ts
+const MY_GROUP = "123456789@g.us";
+
+client.on("interactionCreate", (i) => {
+  if (!i.isGroupParticipantUpdate()) return; // membership changes only
+  if (i.group.id !== MY_GROUP) return;       // one specific group
+  if (!i.isAdd) return;                      // only joins
+
+  console.log(`${i.user?.displayName} joined ${i.group.name}`);
+});
+```
+
+### Which action took place
+
+`GroupParticipantInteraction.action` is a `GroupParticipantAction`:
+
+| `action` | Getter | Meaning |
+| --- | --- | --- |
+| `"add"` | `i.isAdd` | user(s) joined the group |
+| `"remove"` | `i.isRemove` | user(s) left or were kicked |
+| `"promote"` | `i.isPromote` | member(s) became admins |
+| `"demote"` | `i.isDemote` | admin(s) became regular members |
+| `"other"` | — | unmapped provider action (no getter) |
+
+```ts
+client.on("interactionCreate", (i) => {
   if (!i.isGroupParticipantUpdate()) return;
 
-  // i.user = the affected participant (users[0]); i.users covers batches
-  const who = i.users.map((u) => u.displayName).join(", ");
+  switch (i.action) {
+    case "add":
+    case "remove":
+    case "promote":
+    case "demote":
+      console.log(i.action, "by", i.author?.displayName, "→", i.user?.displayName);
+      break;
+    default: // "other"
+      console.log("unmapped participant action in", i.group.name);
+  }
+});
+```
 
-  if (i.isAdd) await i.reply(`Welcome ${who}!`);
-  if (i.isRemove) console.log(`${who} left/was removed`);
-  if (i.isPromote) console.log(`${who} promoted by ${i.author?.displayName ?? "?"}`);
-  if (i.isDemote) console.log(`${who} demoted`);
+### `author` vs `user` — the actor and the affected user
+
+::: warning author performed it · user was affected by it
+On **every** `GroupParticipantInteraction` — for `add`, `remove`, `promote` and `demote` alike:
+
+| | Field | Meaning |
+| --- | --- | --- |
+| **Who performed the action** | `i.author` | The **actor**: the person who added / removed / promoted / demoted. `undefined` for system or unknown actors. |
+| **Who was affected** | `i.user` (and `i.users`) | The **target**: the person who was added / removed / promoted / demoted. `i.user` is `users[0]`; `i.users` covers batches. |
+
+Never swap them: if Ana kicked Beto, then `i.author` is **Ana** (the actor) and `i.user` is **Beto** (the affected user). `i.group` is the group it happened in.
+:::
+
+### Membership changes
+
+**Detect an add** — who joined, and who added them:
+
+```ts
+client.on("interactionCreate", async (i) => {
+  if (!i.isGroupParticipantUpdate() || !i.isAdd) return;
+
+  const joined = i.user; // affected user — who joined
+  const addedBy = i.author; // actor — who performed the add
+
+  await i.reply(
+    `${joined?.displayName ?? "someone"} joined` +
+      (addedBy ? ` (added by ${addedBy.displayName})` : ""),
+  );
 
   // i.group.members / i.group.memberCount are current — metadata is
   // fetched from the provider right before the interaction dispatches
   console.log(`${i.group.name} now has ${i.group.memberCount} members`);
 });
+```
+
+**Detect a remove** — who left or was kicked, and who did it:
+
+```ts
+client.on("interactionCreate", (i) => {
+  if (!i.isGroupParticipantUpdate() || !i.isRemove) return;
+
+  const removed = i.user; // affected user — who was removed
+  const removedBy = i.author; // actor — who performed the removal
+
+  console.log(
+    `${removed?.displayName ?? "someone"} was removed by ${removedBy?.displayName ?? "unknown"}`,
+  );
+});
+```
+
+**Detect promote/demote** — same distinction, both roles:
+
+```ts
+client.on("interactionCreate", (i) => {
+  if (!i.isGroupParticipantUpdate()) return;
+
+  if (i.isPromote) {
+    // i.user = who became admin · i.author = who promoted them
+    console.log(`${i.user?.displayName} made admin by ${i.author?.displayName ?? "?"}`);
+  }
+  if (i.isDemote) {
+    // i.user = who lost admin · i.author = who demoted them
+    console.log(`${i.user?.displayName} demoted by ${i.author?.displayName ?? "?"}`);
+  }
+});
+```
+
+**Batches** — the provider can move several users in one event:
+
+```ts
+if (i.isAdd) {
+  const joined = i.users.map((u) => u.displayName).join(", "); // all affected users
+  console.log(`joined: ${joined} · by: ${i.author?.displayName ?? "?"}`);
+}
 ```
 
 Provider actions outside `add|remove|promote|demote` arrive as `action: "other"` (no convenience getter). Events without a resolvable group id or without participants are dropped by the mapper.
@@ -131,73 +257,3 @@ client.on("interactionCreate", (i) => {
 
 Description clears are normalized: the provider sends `desc: null`, libwa maps it to `changes.description === ""`.
 
-## Announce-only (admin) groups
-
-```ts
-const group = await client.groups.fetch(chat.id);
-if (group.announceOnly && !i.author?.isMe) {
-  const meIsAdmin = group.members.some(
-    (m) => m.id === group.owner?.id || /* compare against your own id */ false,
-  );
-  // …moderation logic of your choosing
-}
-```
-
-libwa deliberately does **not** ship a permissions engine: metadata tells you *what is*, your code decides *what to do*. A group-only command guard (`groupOnly: true`) covers the common case.
-
-## A complete group-aware command
-
-```ts
-import { Client, NotFoundError, PermissionError, type CommandInteraction } from "libwa";
-
-const client = new Client({ commands: { prefix: "!" } });
-
-client.commands.register({
-  name: "ban",
-  description: "Removes a mentioned user (admin only)",
-  groupOnly: true,
-  async execute(interaction: CommandInteraction) {
-    const chat = interaction.chat;
-    if (!chat.isGroup()) return; // compile-time narrowing
-
-    const target = interaction.mentions[0];
-    if (!target) {
-      await interaction.reply("Mention the user: !ban @someone");
-      return;
-    }
-
-    try {
-      await chat.removeMembers([target]);
-      await interaction.reply(`${target.displayName} removed.`);
-    } catch (error) {
-      if (error instanceof PermissionError) {
-        await interaction.reply("I need admin rights for that.");
-        return;
-      }
-      if (error instanceof NotFoundError) {
-        await interaction.reply("That user is not in this group.");
-        return;
-      }
-      throw error; // reported through the client error event
-    }
-  },
-});
-```
-
-## Backend capability matrix
-
-| Operation | Baileys backend | Capability method |
-| --- | --- | --- |
-| Fetch metadata | ✅ | `getGroupMetadata` (mandatory) |
-| Add/remove/promote/demote | ✅ | `updateGroupParticipants?` |
-| Rename | ✅ | `updateGroupName?` |
-| Set/clear description | ✅ | `updateGroupDescription?` |
-
-A backend without these makes the corresponding calls throw `UnsupportedOperationError` — feature-detect by attempting the call, or check the method on the backend instance (`client.backend.updateGroupName !== undefined`).
-
-## Related
-
-- [Entities reference](/reference/entities#group) — full `Group` API
-- [GroupService reference](/reference/groups) — full service API
-- [GroupParticipantInteraction](/reference/interactions#groupparticipantinteraction) / [GroupUpdateInteraction](/reference/interactions#groupupdateinteraction)
-- [Backend events](/reference/backend#backendeventmap) — the normalized events behind these interactions
