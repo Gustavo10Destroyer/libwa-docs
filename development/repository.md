@@ -62,12 +62,12 @@ Roughly 6,300 lines of `src` across 46 TypeScript files (44 modules + 2 barrels)
 
 ## Tests
 
-14 suites, **209 tests**, ~3,300 lines + 330 lines of helpers:
+14 suites, **223 tests**, ~3,650 lines + 348 lines of helpers:
 
 | Suite | Focus |
 | --- | --- |
 | `client.test.ts` (28) | lifecycle, dispatch, reconnection, login/destroy/logout |
-| `baileys-mapper.test.ts` (50) | provider payload → domain mapping (largest suite) |
+| `baileys-mapper.test.ts` (51) | provider payload → domain mapping (largest suite) |
 | `messaging.test.ts` (18) | send/react/edit/delete paths |
 | `interactions.test.ts` (18) | guards, factory, subclasses |
 | `commands.test.ts` (13) | registration + parsing |
@@ -75,13 +75,13 @@ Roughly 6,300 lines of `src` across 46 TypeScript files (44 modules + 2 barrels)
 | `baileys-auth.test.ts` (11) | session-backed auth state |
 | `payload.test.ts` (10) | `normalizeReplyContent` validation |
 | `session.test.ts` (10) | file/memory stores |
-| `users.test.ts` (10) | `client.users` id-pair recording + resolution |
-| `groups.test.ts` (9) | GroupService ops |
+| `users.test.ts` (22) | `client.users` id-pair recording, resolution, fetch, name memory |
+| `groups.test.ts` (10) | GroupService ops |
 | `errors.test.ts` (8) | hierarchy + wrapping |
 | `baileys-disconnect.test.ts` (8) | reason mapping |
 | `middleware.test.ts` (5) | chain semantics |
 
-Helpers: `MockBackend` / `CapableMockBackend` (235 lines — the mandatory contract plus every optional capability) and `fixtures.ts` (backend event builders).
+Helpers: `MockBackend` / `CapableMockBackend` (253 lines — the mandatory contract plus every optional capability) and `fixtures.ts` (backend event builders).
 
 ## Examples
 
