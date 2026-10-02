@@ -113,7 +113,7 @@ flowchart TD
 | --- | --- |
 | `new Client(options)` | `ValidationError` `ERR_INVALID_PREFIX` |
 | `client.login()` | rejects with `AuthenticationError` (fatal/session) or `ConnectionError` (connect failed, retries off/exhausted before ready); resolves after first `ready` |
-| `client.requestPairingCode(phone)` | `ValidationError` `ERR_INVALID_PHONE` / `ERR_UNSUPPORTED` |
+| `client.requestPairingCode(phone)` | `ValidationError` `ERR_INVALID_PHONE` / `UnsupportedOperationError` `ERR_UNSUPPORTED` (backend lacks pairing codes) |
 | `client.destroy()` | never rejects — internal failures are reported through `error` (context `disconnect during destroy`) |
 | `client.logout()` | backend logout/disconnect failures → `error`; a rejecting `sessionStore.clear()` rejects the call |
 | `client.messages.send(...)` | `ValidationError` (payload rules) / `MessageError` (bundled adapter) / `BackendError` |
@@ -123,16 +123,21 @@ flowchart TD
 | `client.groups.*` | `ValidationError` / `UnsupportedOperationError` / `NotFoundError` / `PermissionError` / `BackendError` |
 | `attachment.download()` | `NotFoundError` (evicted from cache) / `MessageError` (download failure) |
 | `client.commands.register(...)` | `ValidationError` `ERR_INVALID_COMMAND_NAME` / `ERR_DUPLICATE_COMMAND` |
-| session stores | `ValidationError` `ERR_SESSION_ID` / `ERR_SESSION_CORRUPT` |
+| session stores | `ValidationError` `ERR_SESSION_ID` / `ERR_SESSION_CORRUPT` / `ERR_SESSION_UNREADABLE` |
 | Baileys auth load | `ValidationError` (corrupt/unsupported/missing-creds session) — surfaces from `login()` |
 
 ### 2. Reported through `error` (no rejection reaches you)
 
 - `command.execute` rejections → context `command "<name>"`
 - middleware throws → context `middleware`
-- listener rejections → context `listener for "<event>"` (except `interactionCreate` handlers → `interactionCreate listener`)
-- reconnect exhausted → `ConnectionError("Gave up reconnecting after N attempt(s) (reason).")`
-- backend logout failures during `client.logout()` → context `backend logout`
+- listener rejections → context `listener for "<event>"` (every event, `interactionCreate` included)
+- backend `connect()` failures → context `connect`
+- interaction construction failures → context `interaction build`
+- reconnection attempt failures → context `reconnection`
+- reconnect exhausted → `ConnectionError("Gave up reconnecting after N attempt(s) (reason).")` (context `reconnect exhausted`)
+- `login()` failures → context `login`
+- backend logout/disconnect failures during `client.logout()` → contexts `backend logout` / `disconnect after logout`
+- disconnect failures during `client.destroy()` → context `disconnect during destroy`
 
 ```ts
 client.on("error", (error) => {
@@ -179,6 +184,8 @@ if (client.backend.react) {
 }
 ```
 
+`ERR_UNSUPPORTED` is always an `UnsupportedOperationError` code, never a `ValidationError` one — e.g. `Client.requestPairingCode` throws it when the backend has no `requestPairingCode` capability.
+
 ## Validation codes
 
 Master list of `ValidationError` codes:
@@ -197,7 +204,6 @@ Master list of `ValidationError` codes:
 | `ERR_EMPTY_USER_LIST` | `GroupService.#participants` | no users |
 | `ERR_INVALID_USER_ID` | `UserService.fetch` | id is not a phone JID (…@s.whatsapp.net / …@c.us, device suffix ok), bare digits (optional `+`), or `…@lid` |
 | `ERR_INVALID_PHONE` | `Client.requestPairingCode` | not `^\d{7,15}$` |
-| `ERR_UNSUPPORTED` | `Client.requestPairingCode` | backend lacks pairing codes |
 | `ERR_SESSION_ID` | `FileSessionStore` | slot id fails `^[A-Za-z0-9_-]{1,64}$` |
 | `ERR_SESSION_CORRUPT` | `FileSessionStore.load` | session file is not valid JSON |
 | `ERR_ENTITY_CONSTRUCTION` | `new Chat(...)` | constructing a plain `Chat` with `kind: "group"` |

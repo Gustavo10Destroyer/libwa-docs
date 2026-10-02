@@ -34,7 +34,7 @@ const client = new Client({
 
 <ApiTable
   :rows="[
-    { name: 'prefix', type: 'string | readonly string[]', def: '&quot;!&quot;', description: 'One or more command prefixes. Checked in order; the first that matches a message wins. Empty strings or an empty array throw ValidationError (ERR_INVALID_PREFIX) when the client is constructed.' },
+    { name: 'prefix', type: 'string | readonly string[]', def: '&quot;!&quot;', description: 'One or more command prefixes. The longest prefix that matches the message wins; ties keep the earlier entry. Empty strings or an empty array throw ValidationError (ERR_INVALID_PREFIX) when the client is constructed.' },
     { name: 'ignoreSelf', type: 'boolean', def: 'false', description: 'When true, messages sent by the logged-in account are never parsed as commands (they still dispatch as MessageInteractions).' }
   ]"
 />

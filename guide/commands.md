@@ -82,7 +82,7 @@ Parsing happens per incoming message inside the [`InteractionFactory`](/referenc
 1. Command parsing must be enabled (`commands` option is not `false`).
 2. The message content must be `kind: "text"` — media never parses as a command.
 3. If `ignoreSelf` is on and the message is from the bot itself, skip parsing.
-4. The text must start with one of the configured prefixes (checked in order).
+4. The text must start with one of the configured prefixes — the longest configured prefix that matches wins.
 5. Everything after the prefix is trimmed; an empty body is not a command.
 6. The first whitespace-delimited token is the command name; it must match `COMMAND_NAME_PATTERN` or the message stays a plain `MessageInteraction`.
 7. The name is lowercased; `args` = remaining tokens split on whitespace; `rawArgs` = the untouched remainder (or `""`).
@@ -110,7 +110,9 @@ Raw text that never parses as a command is dispatched as a normal `MessageIntera
 
 ```ts
 new Client({ commands: { prefix: ["!", "/", "?"] } });
-// "!ping", "/ping", "?ping" all match — first matching prefix in array order wins.
+// "!ping", "/ping", "?ping" all match — the longest matching prefix wins
+// (all three are equal length here, so order plays no role).
+// With prefix: ["!", "!!"], "!!help" parses as the "!!" command, not "!help".
 ```
 
 ### Disabling parsing

@@ -18,7 +18,7 @@ abstract class Interaction {
   readonly member: GroupMember | undefined;  // author’s role in the group (group chats)
   readonly isFromMe: boolean;
 
-  reply(content: ReplyContent): Promise<Message>;
+  reply(content: ReplyContent, options?: SendOptions): Promise<Message>;
 
   isMessage(): this is MessageInteraction;
   isCommand(): this is CommandInteraction;
@@ -38,7 +38,7 @@ abstract class Interaction {
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `type` | [`InteractionType`](/reference/interactions#interactiontype) | Discriminator (`"message"`, `"command"`, `"reaction"`, …). |
-| `id` | `string` | Unique id — the message id for message-ish interactions; a synthetic `` `${chat}:${message}:${action}:${time}` `` for updates; `reaction:<chat>:<msg>:<user>` for reactions; a composed id for group participant events. |
+| `id` | `string` | Unique id — the message id for message-ish interactions; `` `${chat}:${msg}:${action}:${tsMs}:${seq}` `` for message updates; `` `reaction:${chat}:${msg}:${user}:${tsMs}:${seq}` `` for reactions; `` `${groupId}:${action}:${ts}:${participants}` `` (no seq) for group participant events; `` `${groupId}:update:${ts}:${seq}` `` for group metadata updates. |
 | `timestamp` | `Date` | When the underlying event happened (provider timestamps are converted from seconds; some updates fall back to `new Date()`). |
 | `client` | `Client` | The client that produced it — handy for `interaction.client.messages...`. |
 | `chat` | `Chat` | Where it happened. Identity is stable: the same chat id always yields the same cached `Chat` instance. |
@@ -139,7 +139,7 @@ client.on("interactionCreate", async (i) => {
 
 | Method | Behavior |
 | --- | --- |
-| `reply(content)` | Sends in the same chat, quoting this message. |
+| `reply(content, options?)` | Sends in the same chat, quoting this message. The optional [`SendOptions`](/reference/messaging#sendoptions) overrides the quote (`quote` / `replyToMessageId`) or adds `mentions`. |
 | `react(emoji \| null)` | Adds/removes the bot's reaction ([capability-gated](/reference/messaging#react-reactto)). |
 | `delete()` | Deletes the message — own messages, or any message if the bot is group admin. |
 | `edit(text)` | Edits it (must be the bot's own message); returns an updated `Message`. |
@@ -270,7 +270,7 @@ client.on("interactionCreate", async (i) => {
 
 > Class · [full API](/reference/interactions#groupupdateinteraction)
 
-Group metadata changed. Changes are **partial**: only fields the provider reported are present.
+Group metadata changed. Changes are **partial**: only changed keys are present, and a cleared value is present as `undefined` (so `"description" in changes` is `true` for a clear).
 
 ```ts
 client.on("interactionCreate", (i) => {

@@ -41,7 +41,7 @@ client.use(ignoreBots).use(logger);
 | Async | Awaiting `next()` is how you run code after the chain (Koa-style). |
 | Double `next()` | Rejected: `next() called multiple times in the same middleware.` — surfaces through the `error` event as context `middleware`. |
 | Thrown error | Aborts the chain; reported through `error` with context `middleware`. Later middlewares, the command and listeners do not run. |
-| Return value | Ignored; the type allows `void` for simple filters. |
+| Return value | Ignored; the type allows `void` for simple filters. Exception: a detached `next()` (fire-and-forget — called with no `await` and no handler of your own attached) is no longer ignored: compose adopts the unhandled promise, dispatch rejects, and the failure is reported with context `middleware`. A `.catch` you attach yourself owns the outcome and may swallow it. |
 
 ### Dispatch pipeline position
 

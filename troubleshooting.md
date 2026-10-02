@@ -69,7 +69,7 @@ Should not happen (backend generation guards drop dead-socket events). If you se
 ### Commands do not fire
 
 1. `commands: false` in options? → parsing disabled entirely.
-2. Wrong prefix (array order matters; first match wins).
+2. Wrong prefix (the **longest** matching prefix wins; array order only breaks ties between equal-length matches).
 3. Name fails the pattern (`^[a-z0-9][a-z0-9_-]{0,31}$`) → `parse()` returns `null` silently.
 4. `ignoreSelf: true` + message sent by the bot account.
 5. `groupOnly`/`dmOnly` gate — note `interactionCreate` listeners still fire; only `execute()` is skipped.
@@ -105,6 +105,7 @@ Skip = stop. A middleware that `return`s without `await next()` blocks commands 
 | --- | --- | --- |
 | startup crash on bad `sessionId` | `ERR_SESSION_ID` | ids must match `[A-Za-z0-9_-]{1,64}` |
 | corrupted file | `ERR_SESSION_CORRUPT` | delete `.libwa/<id>.json` and re-pair (fail-fast by design) |
+| unreadable `.libwa/<id>.json` (EACCES/EIO — exists but cannot be read) | `ERR_SESSION_UNREADABLE` | fix the file's permissions/ownership — do **not** re-pair, the stored session is still there |
 | bot logged in as wrong account | — | distinct `sessionId`s share one store; check the slot |
 | session ignored after switching backend | — | `provider` mismatch → warn + fresh creds (re-pair) |
 

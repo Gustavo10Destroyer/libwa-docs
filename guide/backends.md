@@ -259,7 +259,7 @@ const client = new Client({ backend: () => new MyBackend() });
 | --- | --- |
 | Directory rule | Only `src/backend/baileys/**` may import `@whiskeysockets/baileys`. |
 | `npm run check:exports` | Builds the reachable `.d.ts` graph from `dist/index.d.ts`; fails on any provider token (`WAMessage`, `WASocket`, `makeWASocket`, `proto.`, module specifier). |
-| `exports` map | Only `.` and `./package.json` — consumers cannot deep-import internal declarations. |
+| `exports` map | Only `.` and `./package.json` — deep imports into `dist/` are **not part of the supported API**: exports-aware resolvers reject them outright, while legacy `moduleResolution: "node"` can still reach `dist/` on disk. |
 | Tests | Core suites use `MockBackend`; provider mapping is unit-tested with realistic fixtures. |
 
 Details: [Public API guard](/development/public-api-guard).

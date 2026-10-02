@@ -77,7 +77,7 @@ client.on("error", (error) => {
 
 ### Error contexts
 
-The `error` event receives a plain `Error` (usually a `WhatsAppError` subclass). The originating context is stringified into the log line, not the event payload. Typical contexts: `command "<name>"`, `interactionCreate listener`, `middleware`, `connect`, `reconnection`, `reconnect exhausted`, `login`, `disconnect during destroy`.
+The `error` event receives a plain `Error` (usually a `WhatsAppError` subclass). The originating context is stringified into the log line, not the event payload. The full set of contexts: `connect`, `disconnect during destroy`, `backend logout`, `disconnect after logout`, `command "<name>"`, `middleware`, `interaction build`, `reconnection`, `reconnect exhausted`, `login`, `listener for "<event>"`.
 
 ## Ordering guarantees
 

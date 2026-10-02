@@ -46,9 +46,9 @@ new Client({ sessionStore: new FileSessionStore({ directory: ".sessions/work" })
   { "provider": "baileys", "data": "eyJ2IjoxL…", "updatedAt": "2026-09-25T12:00:00.000Z" }
   ```
 
-- **Atomic writes**: temp file (`<target>.<pid>.tmp`) + `rename`.
+- **Atomic writes**: temp file (`<target>.<writerId>.tmp`, `writerId` being a `randomUUID()` unique to the store instance) + `rename`.
 - **Per-slot write queue**: concurrent `save`s for the same id serialize; different slots write in parallel.
-- `load()` of a missing slot → `null`; corrupt JSON → `ValidationError` `ERR_SESSION_CORRUPT`.
+- `load()` of a missing slot → `null` (only `ENOENT` counts as missing — any other read failure, e.g. `EACCES`/`EISDIR`, throws `ValidationError` `ERR_SESSION_UNREADABLE`); corrupt JSON → `ValidationError` `ERR_SESSION_CORRUPT`.
 - `clear()` tolerates missing slots (deletes with `force: true`).
 - `directory` getter exposes the resolved directory.
 
@@ -131,7 +131,7 @@ client.on("pairingCode", (code) => console.log(code));
 await client.login();
 ```
 
-- With `pairingPhoneNumber`, the backend requests a code automatically when it has no `creds.me` (at connect, and again if a QR update arrives before one was requested).
+- With `pairingPhoneNumber`, the backend requests a code automatically while `!creds.registered && (creds.me === undefined || creds.me.name === "~")` (at connect, and again on a later QR/`connecting` update — a failed request re-arms, so the next update retries).
 - On demand: `await client.requestPairingCode("5511999999999")` (validates format; `pairingCode` event also fires with the code).
 - Codes are single-use per attempt; re-run pairing by clearing the session.
 
@@ -152,6 +152,7 @@ await p1;                     // resolves on FIRST ready
 | Fatal disconnect before ready | rejects with `AuthenticationError` |
 | Non-fatal close with retries off/exhausted | rejects with `ConnectionError` |
 | `destroy()` was called | rejects with `ConnectionError` (state `destroyed`) |
+| `logout()` called while pending | rejects with `ConnectionError("Client logged out before login completed.")` |
 | rejection with no `await` | swallowed internally (attach `error` to observe) |
 
 ## Multi-account bots
@@ -185,6 +186,8 @@ stateDiagram-v2
 | Reconnect timer cancelled | yes | yes |
 | State after | `idle` (unless destroyed) | `destroyed` (terminal) |
 | `login()` afterwards | fresh pairing flow | rejects with `ConnectionError` |
+| Pending `login()` | rejected with `ConnectionError("Client logged out before login completed.")` | rejected with `ConnectionError("Client was destroyed.")` |
+| Entity & group caches | reset (`#entities.reset()` + `groups.reset()`) | reset (`#entities.reset()` + `groups.reset()`) — cached identity/group state never leaks into the next account |
 | Backend errors | reported via `error`, swallowed | reported via `error`, swallowed |
 
 ```ts

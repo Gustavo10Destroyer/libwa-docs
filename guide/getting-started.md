@@ -4,7 +4,7 @@ This guide takes you from an empty directory to a running bot.
 
 ## Requirements
 
-- **Node.js ≥ 18.17** (libwa ships as an ESM package; `package.json` sets `"engines": { "node": ">=18.17" }`)
+- **Node.js ≥ 20.0.0** (libwa ships as an ESM package; `package.json` sets `"engines": { "node": ">=20.0.0" }`)
 - A WhatsApp account to link (QR scan or pairing code)
 - npm (or pnpm/yarn/bun — examples use npm)
 
@@ -124,7 +124,7 @@ With `auth.pairingPhoneNumber` set, the bundled backend requests a code automati
 const code = await client.requestPairingCode("5511999999999");
 ```
 
-`requestPairingCode` validates the number (`/^\d{7,15}$/`), throws `ValidationError` (`ERR_INVALID_PHONE`) for anything else, and throws `ValidationError` (`ERR_UNSUPPORTED`) if the active backend does not implement pairing codes. Details: [Client reference](/reference/client#requestpairingcode).
+`requestPairingCode` validates the number (`/^\d{7,15}$/`), throws `ValidationError` (`ERR_INVALID_PHONE`) for anything else, and throws `UnsupportedOperationError` (`ERR_UNSUPPORTED`) if the active backend does not implement pairing codes. Details: [Client reference](/reference/client#requestpairingcode).
 
 ## A real command
 

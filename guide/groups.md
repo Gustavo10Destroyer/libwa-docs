@@ -313,7 +313,9 @@ client.on("interactionCreate", (i) => {
 });
 ```
 
-Description clears are normalized: the provider sends `desc: null`, libwa maps it to `changes.description === ""`.
+Description clears are normalized: the provider sends `desc: null`, libwa maps it to `changes.description === undefined` with the key **present** (`"description" in changes` is `true` — key presence, not value).
+
+A `groupUpdate` whose diff against the cached metadata is empty is dropped before dispatch, so listeners never see a no-op update.
 
 ## Mentions
 
