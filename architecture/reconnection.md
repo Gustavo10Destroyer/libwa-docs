@@ -42,6 +42,7 @@ Backoff formula: `delay(n) = min(maxDelayMs, initialDelayMs * factor ** (n - 1))
 | attempts exhausted | login pending: `error` (login) + reject `ConnectionError`, then `disconnect`, then `error` (gave up message) |
 | transient reason, attempts left | `reconnecting(attempt, delayMs)` + timer → `connect()` |
 | scheduled `connect()` throws | `error` (context `reconnection`) → close logic reruns with same reason |
+| `logout()` (any time) | `#loggingOut = true` blocks new reconnects from arming until the wipe finishes — a close raised while logging out is ignored, not retried |
 | `destroy()` mid-timer | timer cancelled, listeners detached, pending `login()` rejected (no `error` event for that) |
 | reopen after retry | attempt counter reset, `me` refreshed, **`ready` emitted again** |
 
@@ -58,6 +59,7 @@ login(): Promise<void>
   - **fatal close while pending** → `AuthenticationError`;
   - **retries exhausted while pending** → `ConnectionError`;
   - **`destroy()` while pending** → `ConnectionError("Client was destroyed.")` (reported = false — no `error` event);
+  - **`logout()` while pending** → `ConnectionError("Client logged out before login completed.")` (also reported = false — no `error` event);
 - a rejection with no `await` is pre-caught internally so fire-and-forget `login()` never crashes the process.
 
 ```mermaid
@@ -88,7 +90,7 @@ Retries call `connect()` **on the existing backend** — no re-instantiation mid
 | Operation | Reconnect effect | Session effect | Listeners |
 | --- | --- | --- | --- |
 | `destroy()` | cancels timer, state `destroyed` | preserved | backend listeners detached (application listeners kept) |
-| `logout()` | cancels timer, state `idle` | **cleared** (after remote revoke) | kept — `login()` re-pairs fresh |
+| `logout()` | cancels timer, state `idle`; a pending `login()` is rejected (`ConnectionError`, unreported) and new reconnects are blocked until the wipe finishes | **cleared** (after remote revoke); entity + group caches reset so the next account starts clean | kept — `login()` re-pairs fresh |
 
 ## Observability
 

@@ -60,10 +60,12 @@ The abstract [`Interaction`](/reference/interactions) carries `id`, `timestamp`,
 | `src/entities/` | `Chat`, `Group`, `Message`, `User`, `EntityFactory` | ❌ |
 | `src/commands/` | registry, definitions | ❌ |
 | `src/messaging/`, `src/groups/` | outbound services + payload normalization | ❌ |
+| `src/users/` | `UserService` — id pairs, resolution, fetch, display-name memory, profile enrichment | ❌ |
 | `src/middleware/` | `compose.ts` chain runner | ❌ |
 | `src/errors/`, `src/logging/`, `src/core/`, `src/auth/` | errors, logger, ids/content/reasons, stores | ❌ |
 | `src/backend/` | contract (`Backend.ts`, `events.ts`), `createDefaultBackend` | ❌ |
 | **`src/backend/baileys/`** | the adapter (5 modules + `index.ts` barrel — 4 of them import the provider) | ✅ **only here** |
+| `src/index.ts` | the root barrel — the entire public API (package exports `.`) | ❌ |
 
 ```mermaid
 flowchart LR

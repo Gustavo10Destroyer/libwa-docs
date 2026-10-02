@@ -47,7 +47,7 @@ Providers differ (reactions yes/no, pairing codes, edits). Making everything man
 - capability discovery in user code is honest: `if (client.backend.react) …`;
 - the contract is small enough to reimplement in ~200 lines (the repo's `MockBackend` test double does exactly that).
 
-Exception: missing `requestPairingCode` surfaces as `ValidationError` `ERR_UNSUPPORTED` from `Client.requestPairingCode` (a configuration problem, not a service op). The identity capabilities (`getPhoneNumberForLid`/`getLidForPhoneNumber`) are lookups, not operations — `client.users.resolvePhone`/`resolveLid` resolve `undefined` when they are absent instead of throwing. `fetchUser` is the deliberate third case: `client.users.fetch` raises `UnsupportedOperationError` when it is absent, because reporting existence is a capability the backend must confirm — never a guess. Profile enrichment (`getProfilePictureUrl`/`getAbout`/`getBusinessProfile`) follows the same rule: `client.users.pictureUrl`/`about`/`accountType` raise `UnsupportedOperationError` when the capability is missing, and resolve `undefined` only for genuinely missing or privacy-hidden data once the capability answers.
+Missing `requestPairingCode` raises `UnsupportedOperationError` `ERR_UNSUPPORTED` from `Client.requestPairingCode` — the same capability rule as `fetchUser` and the profile lookups: a capability the backend does not have is reported, never guessed. The identity capabilities (`getPhoneNumberForLid`/`getLidForPhoneNumber`) are lookups, not operations — `client.users.resolvePhone`/`resolveLid` resolve `undefined` when they are absent instead of throwing. `fetchUser` is the deliberate third case: `client.users.fetch` raises `UnsupportedOperationError` when it is absent, because reporting existence is a capability the backend must confirm — never a guess. Profile enrichment (`getProfilePictureUrl`/`getAbout`/`getBusinessProfile`) follows the same rule: `client.users.pictureUrl`/`about`/`accountType` raise `UnsupportedOperationError` when the capability is missing, and resolve `undefined` only for genuinely missing or privacy-hidden data once the capability answers.
 
 ## `BackendConnectOptions` — the lifeline
 
@@ -74,7 +74,7 @@ Five modules plus an `index.ts` barrel, one public factory (`createBaileysBacken
 
 | File | Role |
 | --- | --- |
-| `BaileysBackend.ts` | socket lifecycle, event wiring, send/react/edit/delete/group ops, pairing, raw-message LRU (500), provider-content conversion, generation guards |
+| `BaileysBackend.ts` | socket lifecycle, event wiring, send/react/edit/delete/group ops, pairing, raw-message LRU (500) for `download()`, group-metadata LRU (`GROUP_META_CACHE_LIMIT = 512`) feeding Baileys' `cachedGroupMetadata` hook, provider-content conversion, generation guards |
 | `BaileysMapper.ts` | pure mapping functions (see [event pipeline](/architecture/event-pipeline#stages)) |
 | `BaileysAuth.ts` | `AuthenticationState` backed by a `SessionStore`; coalesced write chain; `BufferJSON` serialization; app-state key revival |
 | `BaileysDisconnect.ts` | Boom/status-code → [`DisconnectReason`](/reference/disconnect-reason) (incl. network errnos) |
@@ -85,6 +85,7 @@ Adapter defaults:
 ```ts
 const DEFAULT_BROWSER = ["libwa", "1.0.0", "1"];
 const RAW_CACHE_LIMIT = 500;
+const GROUP_META_CACHE_LIMIT = 512;
 // syncFullHistory: false → shouldSyncHistoryMessage: () => false, emitOwnEvents: false
 ```
 
@@ -108,7 +109,7 @@ stateDiagram-v2
 | Mechanism | What it guarantees |
 | --- | --- |
 | import discipline | only `src/backend/baileys/` may `import … from "@whiskeysockets/baileys"` (convention + review — biome has no import-restriction rule; `check:exports` guards the emitted types) |
-| package `exports` | only `.` and `./package.json` — deep `dist/` imports impossible |
+| package `exports` | only `.` and `./package.json` — exports-aware resolvers (bundler/node16) reject deep `dist/` paths; legacy `moduleResolution: "node"` can still reach `dist/` on disk, so deep imports are unsupported, not impossible |
 | `npm run check:exports` | walks the reachable graph of `dist/index.d.ts`; any provider token (`@whiskeysockets/baileys`, `WAMessage`, `WASocket`, `proto.`, …) fails the build |
 | tests | import `src/…` paths; provider-free tests use `MockBackend`; Baileys behavior tested at mapper/auth/disconnect level with realistic fixtures |
 

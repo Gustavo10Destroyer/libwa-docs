@@ -82,10 +82,11 @@ sequenceDiagram
 
 - path `<directory>/<id>.json` (`directory` default `.libwa`);
 - payload `{ provider, data: base64, updatedAt }`;
-- **atomic**: write `<file>.<pid>.tmp` → `rename()`;
+- **atomic**: write `<file>.<writerId>.tmp` → `rename()` (`writerId` = a `randomUUID()` per store instance, so concurrent stores never share one temp file);
 - **serialized per slot**: internal promise queue per id;
 - **safe ids**: `assertSafeSessionId` (`[A-Za-z0-9_-]{1,64}`) on every op → `ERR_SESSION_ID`;
-- corrupt JSON → `ValidationError` `ERR_SESSION_CORRUPT` (cause preserved).
+- corrupt JSON → `ValidationError` `ERR_SESSION_CORRUPT` (cause preserved);
+- file exists but cannot be read (`EACCES`, `EIO`, … — anything but `ENOENT`) → `ValidationError` `ERR_SESSION_UNREADABLE` (cause preserved): a stored session is never mistaken for "no session".
 
 ### MemorySessionStore
 

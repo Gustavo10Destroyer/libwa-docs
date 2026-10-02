@@ -14,7 +14,8 @@ flowchart TD
     F --> G["runMiddlewareChain<br/>ordered middlewares, may stop dispatch"]
     G --> H["command.execute()"]
     H --> I["interactionCreate listeners"]
-    G -.->|"throw"| ERR["error event"]
+    F -.->|"throw"| ERR["error event"]
+    G -.->|"throw"| ERR
     H -.->|"throw"| ERR
     I -.->|"throw"| ERR
 ```
@@ -73,13 +74,14 @@ sequenceDiagram
 
 ### 5. Middleware → command → listeners
 
-`#dispatch` runs three guarded stages in order:
+Interaction construction (`#buildAndDispatch`) and `#dispatch` then run as guarded stages in order — a factory failure never reaches dispatch:
 
 | Stage | Behavior on throw |
 | --- | --- |
+| `InteractionFactory.from*()` — interaction build (before dispatch) | context `interaction build` → `error` event |
 | `runMiddlewareChain(middlewares, i, last)` | context `middleware` → `error` event |
 | gate `groupOnly`/`dmOnly` → `command.execute(i)` | context `` `command "${name}"` `` → `error` event |
-| `interactionCreate` listeners (sequential, awaited) | context `interactionCreate listener` → `error` event |
+| `interactionCreate` listeners (sequential, awaited) | context `listener for "interactionCreate"` → `error` event |
 
 Every stage is individually try/caught — one failure never skips the rest of that stage's siblings, and **the process never crashes**.
 
