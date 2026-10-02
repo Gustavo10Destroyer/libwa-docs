@@ -12,7 +12,7 @@ group.name;         // string | undefined (metadata name, else cached chat name)
 group.description;  // string | undefined
 group.owner;        // User | undefined
 group.memberCount;  // number | undefined
-group.members;      // readonly GroupMember[] — { user, role, tag }
+group.members;      // readonly GroupMember[] — { user, role }
 group.announceOnly; // boolean | undefined (only admins may post)
 group.metadata;     // GroupMetadata | undefined (full record)
 ```
@@ -22,6 +22,22 @@ group.metadata;     // GroupMetadata | undefined (full record)
 - `NotFoundError` — provider says 404 (group gone).
 - `PermissionError` — provider says 401/403 (no access).
 - `BackendError` — anything else, wrapped with cause.
+
+### The 60-second cache
+
+`fetch()` is the *always-fresh* path — it round-trips on every call. Everything the library does internally goes through `ensure()` instead, which answers from a cache that is **at most 60 seconds** old:
+
+```ts
+const group = await client.groups.ensure("123456789@g.us"); // same Group instance either way
+```
+
+- **Cache younger than 60s → no I/O.** The last `Group` is returned immediately; the window counts from the last *attempted* fetch (success or failure).
+- **Older or missing → one fetch.** Concurrent `ensure()` calls for the same group share a single in-flight request.
+- **Failures back off too.** A failed fetch marks the group for the rest of the window — the client keeps serving the last known state (logging `[group refresh]`) instead of hammering a struggling provider, and retries once the window expires.
+- **Events keep it current.** Membership and metadata events patch the cached group as they arrive (see [Working with the entity](#working-with-the-entity)), so within the window the cache follows reality.
+- `fetch()` and `group.refresh()` always bypass the cache and restart the window — call them when you need guaranteed-fresh data.
+
+Every group interaction resolves its group through `ensure()` before dispatching, so bots pay **at most one round-trip per group per minute** no matter how chatty the group is.
 
 ### `GroupMetadata`
 
@@ -50,7 +66,7 @@ if (chat.isGroup()) {
   group.applyMetadata(metadata);       // merge externally-fetched metadata
   group.description;
   group.members.forEach((m) => {
-    console.log(`${m.tag ?? m.user.displayName} (${m.role}) — ${m.user.isMe ? "me" : m.user.phone ?? m.user.id}`);
+    console.log(`${m.user.displayName} (${m.role}) — ${m.user.isMe ? "me" : m.user.phone ?? m.user.id}`);
   });
 }
 ```
@@ -67,18 +83,17 @@ await group.setDescription("New description"); // undefined clears it
 ```
 
 ::: tip Identity
-Chats and groups are cached by id: `interaction.chat === interaction.message.chat`, and a group fetched twice is the same object. Cached metadata updates automatically when group-update events arrive (the factory applies changes *before* creating the interaction).
+Chats and groups are cached by id: `interaction.chat === interaction.message.chat`, and a group fetched twice is the same object. Cached metadata updates automatically when group-update **and membership** events arrive (the factory applies changes *before* creating the interaction), so the 60-second window costs at most one fetch per group without going stale in between.
 :::
 
-## Membership roles and tags
+## Membership roles
 
-Roles and tags are **group-scoped**: the same account can be an `admin` in one group and a plain member in another — so they live on the group, never on [`User`](/reference/entities#user):
+Roles are **group-scoped**: the same account can be an `admin` in one group and a plain member in another — so they live on the group, never on [`User`](/reference/entities#user):
 
 ```ts
 interface GroupMember {
-  readonly user: User;               // account-level entity — the same instance as interaction.author
-  readonly role: GroupRole;          // "member" | "admin" | "superadmin" — inside this group
-  readonly tag: string | undefined;  // this group's label: metadata name, else the @handle
+  readonly user: User;       // account-level entity — the same instance as interaction.author
+  readonly role: GroupRole;  // "member" | "admin" | "superadmin" — inside this group
 }
 ```
 
@@ -89,14 +104,13 @@ client.on("interactionCreate", (i) => {
   if (!i.isFromGroup()) return;
 
   i.member?.role; // "admin" — the sender's role in this group
-  i.member?.tag; // "Gustavo" — how this group labels them
   i.member?.user; // === i.author (same User instance)
 
   if (i.member && i.member.role !== "member") await i.reply("Hello, admin!");
 });
 ```
 
-`member` is computed from `group` + `author`, and is `undefined` when either side is missing: direct chats, author-less events (group metadata updates, some bulk deletes), authors that are not participants of the group, or group metadata the client does not know yet (it fetches metadata **once per group** before the first group message dispatches; participant/update events always refresh first).
+`member` is computed from `group` + `author`, and is `undefined` when either side is missing: direct chats, author-less events (group metadata updates, some bulk deletes), authors that are not participants of the group, or group metadata the client could not resolve (it goes through `client.groups.ensure` before dispatch — at most one fetch per group per minute; see [The 60-second cache](#the-60-second-cache)).
 
 ### On the group: `members` and `member()`
 
@@ -240,8 +254,8 @@ client.on("interactionCreate", async (i) => {
       (addedBy ? ` (added by ${addedBy.displayName})` : ""),
   );
 
-  // i.group.members / i.group.memberCount are current — metadata is
-  // fetched from the provider right before the interaction dispatches
+  // i.group.members / i.group.memberCount are current — the membership
+  // event was applied to the cached metadata before the interaction dispatched
   console.log(`${i.group.name} now has ${i.group.memberCount} members`);
 });
 ```
@@ -295,7 +309,7 @@ Provider actions outside `add|remove|promote|demote` arrive as `action: "other"`
 client.on("interactionCreate", (i) => {
   if (!i.isGroupUpdate()) return;
   // i.changes: partial { name?, description?, announceOnly?, locked? }
-  // i.group already reflects the new values (metadata refreshed before dispatch)
+  // i.group already reflects the new values (applied to the cached metadata before dispatch)
 });
 ```
 
@@ -392,18 +406,18 @@ The rules that keep mentions working:
 ### Group names
 
 ```ts
-// 1. On demand — always fresh; this is what group interactions use internally
+// 1. On demand — always a provider round-trip, bypassing the cache
 const group = await client.groups.fetch("120363012345678901"); // bare id works — @g.us is appended
 group.name; // group subject, e.g. "Weekend plans"
 group.displayName; // name ?? id — never empty
 
-// 2. From a group interaction — metadata was fetched before dispatch
+// 2. From a group interaction — resolved through the ≤60s cache, kept current by events
 client.on("interactionCreate", (i) => {
   if (!i.isGroupParticipantUpdate()) return;
   console.log(i.group.name, i.group.memberCount);
 });
 
-// 3. Re-sync an entity you already hold
+// 3. Re-sync an entity you already hold (also bypasses the cache)
 await group.refresh();
 ```
 
