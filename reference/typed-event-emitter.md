@@ -39,7 +39,7 @@ class TypedEventEmitter<Map extends EventMapConstraint<Map>> {
 
 ### `on` / `once`
 
-Register permanent / one-shot listeners. Return an `Unsubscribe` closure (idempotent). Storage: two maps of `event → Set<listener>` (insertion-ordered — listeners run in registration order; `once` entries live in a separate set appended after permanent ones).
+Register permanent / one-shot listeners. Return an `Unsubscribe` closure (idempotent). Storage: **one** `Map<key, ListenerEntry[]>` per emitter, each entry `{ listener, once }` — so `on` and `once` listeners dispatch strictly in registration order: a `once` registered between two permanent listeners runs **between** them, not after all of them.
 
 ### `off`
 
@@ -52,7 +52,7 @@ off(event, listener): void  // removes one
 
 | Method | Behavior |
 | --- | --- |
-| `emitAsync` | snapshot listeners (so `off` during emit is safe), clear `once` set, then `await` each listener **sequentially**; per-listener try/catch → `onListenerError(error, event)` |
+| `emitAsync` | snapshot the ordered array (so `off` during emit is safe), splice **only the `once` entries** out of it (permanent entries stay in place), then `await` each snapshotted listener **sequentially**; per-listener try/catch → `onListenerError(error, event)` |
 | `emit` | fire-and-forget: `void emitAsync(...).catch(err => onListenerError(err, event))` |
 
 **Never rejects to the caller of `emit`**; listener failures are always routed to `onListenerError`. With no listeners, `emitAsync` returns immediately.
@@ -100,7 +100,7 @@ Guarantees this buys:
 ## Design notes
 
 - Types are erased at runtime — zero reflection cost.
-- `Set` gives O(1) deletes and stable order; two sets keep `once` semantics simple.
+- One ordered array per event keeps `on` and `once` listeners interleaved in registration order; removal is a linear `splice`, which is irrelevant at realistic listener counts (and it is what lets `once` entries be consumed individually without disturbing their permanent neighbours).
 - `(...args: never[])` stored listeners avoid variance friction; casts happen only at the call boundary.
 - Same class powers `BackendEventMap` in the Baileys backend (its `on` is part of `WhatsAppBackend`).
 

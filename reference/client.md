@@ -152,6 +152,22 @@ for (const mw of buildChain()) client.use(mw);
 
 Details: [Middleware guide](/guide/middleware).
 
+### `isSelf`
+
+```ts
+isSelf(id: UserId): boolean
+```
+
+Whether `id` is this client's own account — under **either** addressing scheme (LID ↔ phone pair aware). In LID-addressed groups the bot's own actions arrive with the linked id, so comparing against `me.id` alone would miss them.
+
+<ApiTable
+  :rows="[
+    { name: 'id', type: 'UserId', description: 'Id to test — a phone JID or a linked id (…@lid).' }
+  ]"
+/>
+
+**Returns:** `true` when `id` is the logged-in account (or the counterpart id of a known pair). `false` while `me` is `null` (before the first connect).
+
 ### `login`
 
 ```ts
@@ -167,7 +183,7 @@ Behavior matrix:
 | `state === "destroyed"` | rejects `ConnectionError("This client has been destroyed...")` |
 | already ready | resolves immediately |
 | `login()` already pending | returns the **same** promise |
-| otherwise | subscribes backend, `state = "connecting"`, starts `connect()` |
+| otherwise | cancels any pending reconnect timer (this `login()` takes over from it), subscribes backend, `state = "connecting"`, starts `connect()` |
 
 Failure routing inside:
 
@@ -201,7 +217,8 @@ Permanently stops the client:
 3. cancels a pending reconnect timer;
 4. rejects a pending `login()` with `ConnectionError("Client was destroyed.")` — **without** emitting `error` for it (report = false);
 5. unsubscribes all backend listeners;
-6. `await backend.disconnect()` — failures reported through `error` (context `disconnect during destroy`), never thrown.
+6. `#entities.reset()` + `groups.reset()` — cached identities and metadata describe the account that was connected; they are dropped so a `destroy()` cannot leak them into whatever reuses this process;
+7. `await backend.disconnect()` — failures reported through `error` (context `disconnect during destroy`), never thrown.
 
 After `destroy()`, `login()` always rejects. This is the only terminal state.
 
@@ -213,11 +230,14 @@ async logout(): Promise<void>
 
 Invalidates the session and returns the client to `idle`:
 
-1. cancels any pending reconnect timer;
-2. `backend.logout()` if implemented (remote revocation) — failures → `error` (context `backend logout`);
-3. `sessionStore.clear(sessionId)` — the slot is wiped;
-4. `backend.disconnect()` — failures → `error` (context `disconnect after logout`);
-5. `isReady = false`; `state = "idle"` (unless destroyed).
+1. `#loggingOut = true` — the latch that keeps reconnects from arming while the session is being wiped (released in `finally`);
+2. cancels any pending reconnect timer;
+3. rejects an in-flight `login()` with `ConnectionError("Client logged out before login completed.")` — without emitting `error` (report = false);
+4. `backend.logout()` if implemented (remote revocation) — failures → `error` (context `backend logout`);
+5. `sessionStore.clear(sessionId)` — the slot is wiped;
+6. `backend.disconnect()` — failures → `error` (context `disconnect after logout`);
+7. `isReady = false`; `state = "idle"` (unless destroyed);
+8. `#entities.reset()` + `groups.reset()` — a `login()` after this point is a *different* account, so the previous account's chats, members, push names and group TTLs must not answer for them.
 
 Backend `logout()`/`disconnect()` failures are swallowed (reported through `error` with contexts `backend logout` / `disconnect after logout`), but a rejecting `sessionStore.clear()` **does** reject the call. A subsequent `login()` starts a **fresh pairing flow**. Does not detach listeners (unlike `destroy()`).
 
@@ -242,7 +262,7 @@ Requests a pairing code from the server for phone-number login (the code format 
 | Condition | Error | Code |
 | --- | --- | --- |
 | format mismatch | `ValidationError` | `ERR_INVALID_PHONE` |
-| backend lacks `requestPairingCode` | `ValidationError` | `ERR_UNSUPPORTED` |
+| backend lacks `requestPairingCode` | `UnsupportedOperationError` | `ERR_UNSUPPORTED` |
 | provider failure | `BackendError` (wrapped, context `Failed to request pairing code`) | `ERR_BACKEND` |
 
 Meaningful only while connecting; with `auth.pairingPhoneNumber` configured the bundled backend auto-requests one.
@@ -262,7 +282,7 @@ type ClientState = "idle" | "connecting" | "ready" | "destroyed";
 
 ## Internal machinery <ApiBadge kind="internal" />
 
-For contributors reading `src/Client.ts` (511 lines):
+For contributors reading `src/Client.ts` (624 lines):
 
 | Member | Purpose |
 | --- | --- |

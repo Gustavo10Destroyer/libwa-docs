@@ -57,7 +57,7 @@ interface WhatsAppBackend {
 | messages | `sendMessage` `downloadMedia` | required; non-`WhatsAppError` throws are wrapped as `BackendError` (`WhatsAppError` subclasses pass through — the bundled adapter reports `MessageError`) |
 | groups read | `getGroupMetadata` | required |
 | events | `on` | required; core subscribes once per client |
-| optional ops | `react` `editMessage` `deleteMessage` `updateGroupParticipants` `updateGroupName` `updateGroupDescription` `requestPairingCode` | `UnsupportedOperationError` (`ERR_UNSUPPORTED`) from the service, or `ValidationError` for pairing codes |
+| optional ops | `react` `editMessage` `deleteMessage` `updateGroupParticipants` `updateGroupName` `updateGroupDescription` `requestPairingCode` | `UnsupportedOperationError` (`ERR_UNSUPPORTED`) from the service — a missing `requestPairingCode` is this same class, because a capability your backend choice lacks is a configuration problem, not a service operation |
 | identity | `getPhoneNumberForLid` `getLidForPhoneNumber` | no error — `client.users.resolvePhone`/`resolveLid` are lookups and resolve `undefined` when the capability is absent |
 | account lookup | `fetchUser` | `client.users.fetch` raises `UnsupportedOperationError` (`ERR_UNSUPPORTED`) — existence is checked, never assumed |
 | profile enrichment | `getProfilePictureUrl` `getAbout` `getBusinessProfile` | `client.users.pictureUrl` / `about` / `accountType` raise `UnsupportedOperationError` (`ERR_UNSUPPORTED`); *with* the capability, genuinely missing/hidden data resolves `undefined` (never conflated with a missing capability) |

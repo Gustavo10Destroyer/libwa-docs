@@ -85,9 +85,10 @@ Emit `ValidationError` with a specific `code` (overriding `ERR_VALIDATION`):
 | `ERR_EMPTY_USER_LIST` | `GroupService` participant ops with `[]` |
 | `ERR_INVALID_USER_ID` | `UserService.fetch` (id not a phone JID / bare digits / `…@lid`) |
 | `ERR_INVALID_PHONE` | `Client.requestPairingCode` |
-| `ERR_UNSUPPORTED` | same as `UnsupportedOperationError` but as validation |
+| `ERR_UNSUPPORTED` | not a `ValidationError` code — it is the default code of `UnsupportedOperationError` (see the [code registry](#code-registry)) |
 | `ERR_SESSION_ID` | `assertSafeSessionId` (bad slot id) |
 | `ERR_SESSION_CORRUPT` | `FileSessionStore.load` (invalid JSON) |
+| `ERR_SESSION_UNREADABLE` | `FileSessionStore.load` (file exists but cannot be read — non-ENOENT) |
 | `ERR_ENTITY_CONSTRUCTION` | `Chat` constructor guard (e.g. `new Chat({kind:"group"})` — use the factory's `group()` instead) |
 
 ## Subclass signatures

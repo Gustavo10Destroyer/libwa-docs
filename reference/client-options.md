@@ -37,7 +37,7 @@ Options for the command system. Pass `commands: false` on `ClientOptions` to dis
 
 <ApiTable
   :rows="[
-    { name: 'prefix', type: 'string | readonly string[]', def: '&quot;!&quot;', description: 'Command prefix(es). Checked in array order; first match wins. Empty array or any empty string → ValidationError ERR_INVALID_PREFIX at construction.' },
+    { name: 'prefix', type: 'string | readonly string[]', def: '&quot;!&quot;', description: 'Command prefix(es). Longest matching prefix wins; ties keep the earlier entry. Empty array or any empty string → ValidationError ERR_INVALID_PREFIX at construction.' },
     { name: 'ignoreSelf', type: 'boolean', def: 'false', description: 'Skip command parsing for messages sent by the logged-in account (they still dispatch as MessageInteractions).' }
   ]"
 />

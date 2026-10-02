@@ -6,7 +6,7 @@ Everything libwa publishes comes from **one module**: the package root.
 import { Client, type Interaction } from "libwa";
 ```
 
-There are no deep imports — `package.json` `exports` exposes only `.` (plus `./package.json`), and `npm run check:exports` proves no provider type leaks into the surface (see [Public API guard](/development/public-api-guard)). The table below is the complete export list of `src/index.ts`.
+Deep imports are unsupported, not physically impossible: `package.json` `exports` exposes only `.` (plus `./package.json`), so exports-aware resolvers reject any deep path — while legacy `moduleResolution: "node"` tooling can still reach `dist/` directly. `npm run check:exports` proves no provider type leaks into the surface (see [Public API guard](/development/public-api-guard)). The table below is the complete export list of `src/index.ts`.
 
 ::: tip Reading the reference
 Each page documents signatures, parameters, return values, errors, and examples. Symbol pages cross-link related guides. <ApiBadge kind="internal" /> marks things that exist in the repository but are **not** exported (documented for contributors extending the library).

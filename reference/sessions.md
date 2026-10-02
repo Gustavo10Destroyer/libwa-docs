@@ -70,10 +70,10 @@ interface FileSessionStoreOptions {
 
 | Property | Mechanism |
 | --- | --- |
-| Atomic writes | write `<file>.<pid>.tmp` → `rename()` (readers never see partial files) |
+| Atomic writes | write `<file>.<writerId>.tmp` → `rename()` (readers never see partial files; `writerId` = `randomUUID()` per store instance, so two stores in one process never share a temp file) |
 | Serialized per slot | internal promise queue per id (`#serialize`) — concurrent save/clear on one id run in order |
 | Safe ids | every operation runs `assertSafeSessionId()` first (see below) |
-| Missing file | `load()` → `null` (read errors swallowed) |
+| Missing file | `load()` → `null` **only** for ENOENT; any other read error throws `ValidationError` `ERR_SESSION_UNREADABLE` (never swallowed) |
 | Corrupt JSON | `load()` → `ValidationError` `ERR_SESSION_CORRUPT` (with `cause`) |
 
 ```ts
@@ -157,6 +157,7 @@ class RedisSessionStore implements SessionStore {
 | --- | --- | --- |
 | `ERR_SESSION_ID` | `ValidationError` | id fails `[A-Za-z0-9_-]{1,64}` |
 | `ERR_SESSION_CORRUPT` | `ValidationError` | session file is not valid JSON (cause preserved) |
+| `ERR_SESSION_UNREADABLE` | `ValidationError` | session file exists but cannot be read — non-ENOENT (EACCES/EIO/…, cause preserved) |
 
 ## See also
 

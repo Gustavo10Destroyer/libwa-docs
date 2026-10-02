@@ -68,6 +68,7 @@ Recursive drain: dispatches position `0…n`, then `last()` (the client's comman
 | some middleware skips `next()` | promise resolves, `last()` never runs (silent drop) |
 | middleware throws | promise rejects → client reports context `middleware` |
 | `next()` called twice | rejects with the double-call `Error` |
+| `next()` fired but never awaited/handled (detached) | the chain adopts the promise: its rejection rejects this dispatch too → client reports context `middleware` |
 
 Not exported from the package root — the `Client` owns the only pipeline. Documented for contributors extending dispatch (see [Middleware guide](/guide/middleware#semantics)).
 

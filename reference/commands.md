@@ -83,7 +83,7 @@ Internal storage: two maps — `name → definition` and `alias → canonical na
 register(definition: CommandDefinition): this
 ```
 
-Lowercases `name`, validates, stores, then registers every alias the same way. Returns `this` for chaining.
+Lowercases `name`, validates the whole definition first, then stores the name and every alias. Returns `this` for chaining.
 
 **Throws `ValidationError`:**
 
@@ -94,7 +94,7 @@ Lowercases `name`, validates, stores, then registers every alias the same way. R
 | alias fails pattern | `ERR_INVALID_COMMAND_NAME` | `Invalid alias "…" for command "…"`. |
 | alias collides (command or alias) | `ERR_DUPLICATE_COMMAND` | `Alias "…" conflicts with an existing command.` |
 
-Pattern: `/^[a-z0-9][a-z0-9_-]{0,31}$/` (1–32 characters). Registration is **atomic per definition**: name first, then aliases — a failing alias leaves the command itself registered (no rollback).
+Pattern: `/^[a-z0-9][a-z0-9_-]{0,31}$/` (1–32 characters). Registration is **atomic per definition**: the whole definition (name + every alias + collision checks) is validated before any mutation, so a failing alias leaves **nothing** registered (no partial state).
 
 ### `registerAll`
 
@@ -147,7 +147,7 @@ parse(text: string, prefixes: readonly string[]): ParsedCommand | null
 
 Algorithm (in order):
 
-1. first prefix (array order) that `text.startsWith` — else `null`;
+1. longest prefix that `text.startsWith` (ties → earliest entry) — else `null`;
 2. strip prefix, `trim()`; empty → `null` (so `"!"` alone is not a command);
 3. split name at the first whitespace; lowercase; must pass the name pattern — else `null`;
 4. `rawArgs` = remainder trimmed; `args = rawArgs.split(/\s+/)` (or `[]`);

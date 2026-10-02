@@ -124,14 +124,14 @@ type GroupParticipantAction = "add" | "remove" | "promote" | "demote" | "other";
 
 ```ts
 interface GroupUpdateChanges {
-  readonly name?: string;
-  readonly description?: string;
-  readonly announceOnly?: boolean;
-  readonly locked?: boolean;
+  readonly name?: string | undefined;
+  readonly description?: string | undefined;
+  readonly announceOnly?: boolean | undefined;
+  readonly locked?: boolean | undefined;
 }
 ```
 
-Partial diff — only the keys that actually changed are present (compare with `hasNameChange` / `hasDescriptionChange`).
+Partial diff — only keys the provider reported are present (a cleared value is present as `undefined`). Under `exactOptionalPropertyTypes` each field is `readonly name?: string | undefined` and friends: `undefined` is a legal value of a *present* key, so `description: undefined` means the description was **cleared**, while an absent key means it was not part of the update at all. Key presence is the "did this change?" test (compare with `hasNameChange` / `hasDescriptionChange`).
 
 ## Group <ApiBadge kind="class" />
 
@@ -165,7 +165,7 @@ A `Chat` with `kind` always `"group"` plus cached [`GroupMetadata`](#groupmetada
 | `demote` | `(users: (User \| UserId)[]) => Promise<void>` | Admins → members. |
 | `rename` | `(name: string) => Promise<void>` | Changes subject; empty → `ERR_EMPTY_GROUP_NAME`. |
 | `setDescription` | `(description: string \| undefined) => Promise<void>` | Sets (or clears, `undefined`) description. |
-| `applyMetadata` | `(metadata: GroupMetadata) => void` *(internal)* | Writes metadata + name cache without a network call. |
+| `applyMetadata` | `(metadata: GroupMetadata) => void` *(internal)* | Writes metadata + name cache without a network call, and feeds the factory's bounded metadata cache (`storeGroupMetadata`) so instance and factory cannot drift apart. Bumps no revision — that happens on local writes (`applyGroupChanges` / `applyGroupParticipants`). |
 
 ```ts
 if (interaction.isFromGroup()) {
@@ -366,19 +366,25 @@ const type = await client.users.accountType(user.id); // may throw UnsupportedOp
 class EntityFactory {
   constructor(client: Client);
   get me(): User | null;
+  reset(): void;                                             // drops every cached identity, name, id pair and group record (logout/destroy)
   setSelf(self: BackendSelf): User;
   recordIdPairs(pairs: readonly BackendIdPair[] | undefined): void;  // cross-scheme pairs only
   phoneFor(id: UserId): string | undefined;                          // id itself or recorded pair
   altIdFor(id: UserId): UserId | undefined;                          // counterpart in the other scheme
+  isSelf(id: UserId): boolean;                               // own account under either addressing scheme; false while me is null
   rememberName(id: UserId, name: string | undefined): void;          // store a display name under both id schemes
   user(id: UserId, name?: string | undefined): User;                 // sets isMe + resolved phone; falls back to the remembered name
   selfUser(): User;
   chat(ref: ChatRef): Chat;                                   // picks Group for kind "group"
   knownChat(id: ChatId): Chat | undefined;
   group(id: ChatId, name?: string | undefined): Group;
+  storeGroupMetadata(metadata: GroupMetadata): void;          // bounded metadata-cache write + participant id-pair recording (no revision bump)
   applyGroupMetadata(metadata: GroupMetadata): Group;
   groupMetadata(id: ChatId): GroupMetadata | undefined;
+  groupRevision(id: ChatId): number;                          // version bumped by every local group write — fetches never bump it
+  diffGroupChanges(groupId: ChatId, changes: GroupUpdateChanges): GroupUpdateChanges;  // keeps only fields that differ from the cache
   applyGroupChanges(groupId: ChatId, changes: GroupUpdateChanges): Group;
+  applyGroupParticipants(groupId: ChatId, action: GroupParticipantAction, participantIds: readonly UserId[]): Group;  // membership change → cache + revision bump
   message(event: BackendMessageEvent): Message;
   sentMessage(
     sent: BackendSentMessage,

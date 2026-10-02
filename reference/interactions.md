@@ -61,14 +61,15 @@ if (i.isFromGroup()) {
 #### `reply`
 
 ```ts
-reply(content: ReplyContent): Promise<Message>
+reply(content: ReplyContent, options?: SendOptions): Promise<Message>
 ```
 
-Sends a reply targeting this interaction's chat (quoted when the interaction carries a message).
+Sends a reply targeting this interaction's chat (quoted when the interaction carries a message). `options` is forwarded to `client.messages.send` — an explicit `options.replyToMessageId` wins over the interaction's own quote, an explicit `options.quote` over both.
 
 <ApiTable
   :rows="[
-    { name: 'content', type: 'ReplyContent', description: 'Plain string, content object, content+attachment payload, or an array of them.' }
+    { name: 'content', type: 'ReplyContent', description: 'Plain string or structured payload — ReplyContent = string | MessagePayload (no array form).' },
+    { name: 'options', type: 'SendOptions', def: 'undefined', description: 'quote / replyToMessageId / mentions — same options client.messages.send takes.' }
   ]"
 />
 
@@ -78,8 +79,9 @@ Sends a reply targeting this interaction's chat (quoted when the interaction car
 
 ```ts
 await i.reply("hi");
-await i.reply({ text: "with image", image: "/tmp/x.png" });
-await i.reply(["line one", { text: "line two" }]);
+const bytes = new Uint8Array(await readFile("/tmp/x.png"));
+await i.reply({ image: { data: bytes, mimetype: "image/png" }, caption: "with image" });
+await i.reply({ text: "line two" }); // one payload per call — ReplyContent has no array form
 ```
 
 Details: [Messaging reference](/reference/messaging).
@@ -262,8 +264,8 @@ Group metadata changed.
   :rows="[
     { name: 'group', type: 'Group', description: 'Target group — metadata resolved before dispatch (≤60s cache), changes applied on top.' },
     { name: 'changes', type: 'GroupUpdateChanges', description: 'Partial diff: { name?, description?, announceOnly?, locked? } — only changed keys present.' },
-    { name: 'hasNameChange', type: 'boolean (getter)', description: 'changes.name !== undefined.' },
-    { name: 'hasDescriptionChange', type: 'boolean (getter)', description: 'changes.description !== undefined.' }
+    { name: 'hasNameChange', type: 'boolean (getter)', description: '&quot;name&quot; in changes — key presence, not a value check (a present key may hold undefined).' },
+    { name: 'hasDescriptionChange', type: 'boolean (getter)', description: '&quot;description&quot; in changes — true even when the description was cleared (present key with an undefined value).' }
   ]"
 />
 

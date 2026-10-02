@@ -53,7 +53,7 @@ client.on("interactionCreate", async (interaction) => { /* … */ });
 
 **When:** after a backend event was mapped, converted by `InteractionFactory`, and every registered middleware called `next()`. A matched command's `execute()` runs **before** these listeners (and even when `groupOnly`/`dmOnly` skip it, listeners still run).
 
-**Ordering:** listeners run sequentially in registration order; each may be async (awaited). Thrown errors → context `interactionCreate listener` on the `error` event.
+**Ordering:** listeners run sequentially in registration order; each may be async (awaited). Thrown errors → context `listener for "interactionCreate"` on the `error` event.
 
 ### `error`
 

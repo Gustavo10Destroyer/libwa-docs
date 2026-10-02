@@ -4,7 +4,7 @@
 
 ```ts
 await client.messages.send("5511999999999@s.whatsapp.net", "hello");
-await chat.send({ text: "hi", image: bytes });
+await chat.send({ image: bytes, caption: "hi" });
 await i.reply("pong");
 ```
 
@@ -99,12 +99,13 @@ End-to-end outbound flow: resolve target → `normalizeReplyContent(content, opt
 await client.messages.send(chatId, "plain text");
 
 await client.messages.send(user, {
-  text: "with image",
   image: new Uint8Array(await readFile("cat.jpg")),
   caption: "my cat",
   mentions: [authorId],
 }, { replyToMessageId: someId });
 ```
+
+A payload carries exactly one body — `text`, `image`, `video`, `audio`, `document`, `sticker` or `location`. Combining two of them throws `ValidationError` `ERR_AMBIGUOUS_MESSAGE`; `caption` is not a body and only makes sense alongside an image, video or document.
 
 ### `react` / `reactTo`
 
@@ -123,7 +124,7 @@ edit(message: Message, text: string): Promise<Message>
 
 Edits **your own** text message; returns the updated `Message`.
 
-**Errors:** `ValidationError` `ERR_EMPTY_MESSAGE` (empty text), `ERR_UNSUPPORTED` when the backend has no `editMessage`; provider failures as `BackendError` (context `Failed to edit message`).
+**Errors:** `ValidationError` `ERR_EMPTY_MESSAGE` (empty text), `ERR_UNSUPPORTED` when the backend has no `editMessage`; provider failures surface as `MessageError` with the bundled backend (its own `MessageError` passes through `rethrowAsBackendError` untouched) — `BackendError` (message `Failed to edit message: …`) applies only to custom backends that throw a non-library error.
 
 ### `delete`
 
@@ -131,7 +132,7 @@ Edits **your own** text message; returns the updated `Message`.
 delete(message: Message): Promise<void>
 ```
 
-Deletes **your own** message (`ERR_UNSUPPORTED` when unsupported; provider failures → `BackendError`, context `Failed to delete message`).
+Deletes **your own** message (`ERR_UNSUPPORTED` when unsupported; provider failures → `MessageError` with the bundled backend, or `BackendError` (message `Failed to delete message: …`) only when a custom backend throws a non-library error).
 
 ## `normalizeReplyContent` <ApiBadge kind="internal" />
 

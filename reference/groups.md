@@ -23,6 +23,7 @@ class GroupService {
   constructor(backend: WhatsAppBackend, entities: EntityFactory); // internal
   ensure(target: GroupTarget): Promise<Group>;
   fetch(target: GroupTarget): Promise<Group>;
+  reset(): void;                          // forgets when each group was last fetched — called by logout()/destroy()
   addMembers(group: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
   removeMembers(group: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
   promote(group: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
