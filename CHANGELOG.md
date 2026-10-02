@@ -2,6 +2,29 @@
 
 All notable changes to the **libwa** package (this site documents `libwa`, not the docs repo). Versions follow [Semantic Versioning](https://semver.org): minor bumps may contain breaking changes while the major version is `0` — each entry spells them out.
 
+## Unreleased
+
+Work on `libwa`'s main branch after 0.3.0 — not yet published.
+
+### Added
+
+- **`Client.isSelf(id)`** — synchronous "is this the bot account?" check that answers under either id scheme (recorded pairs included).
+- **`ERR_SESSION_UNREADABLE`** — a session file that exists but cannot be read (permissions, I/O) now raises `ValidationError` with this code and the original cause, instead of looking like "no session".
+- **CI workflow** — `.github/workflows/ci.yml`: Node 20, `npm ci`, `npm run verify`, on pushes to `main` and on pull requests.
+
+### Changed
+
+- **Breaking:** engines raised from `>=18.17` to `>=20.0.0` — Baileys 7.0.0-rc14 requires the same floor.
+- **`npm run build` clears `dist/` first** via `scripts/clean-dist.mjs` (`node scripts/clean-dist.mjs && tsc -p tsconfig.build.json`), so renamed or removed files cannot survive as stale output.
+- **Bounded entity caches** — `EntityFactory` caps chats (LRU 512), group metadata (512), id pairs (4096) and display names (4096) instead of growing without limit.
+- **Whole-definition command registration validation** — `commands.register()` validates the name, aliases and every conflict before committing anything, so a rejected registration leaves the registry exactly as it was; `parse()` now picks the **longest** matching prefix (array order only breaks ties).
+- **Deterministic listener ordering** — listeners dispatch in registration order over a snapshot, with `once` listeners consumed before dispatch, so re-entrant emissions cannot reorder handlers.
+- **`Interaction.reply()` / `Message.reply()` take an optional `SendOptions`** after the content (quote, mentions, …).
+
+### Fixed
+
+- **Rejected middleware surfaces on the `error` event** — a detached `next()` that rejects is reported (context `middleware`) instead of escaping as an unhandled rejection.
+
 ## 0.3.0 (2026-10-01)
 
 ### Removed
