@@ -4,7 +4,7 @@
 
 ```bash
 npm run build && npm run check:exports
-# check:exports: ok — 40 declaration file(s) reachable from dist/index.d.ts,
+# check:exports: ok — 41 declaration file(s) reachable from dist/index.d.ts,
 # no provider tokens in the public type surface.
 ```
 
@@ -26,12 +26,17 @@ By convention (and review), provider imports live exclusively in `src/backend/ba
 
 ```json
 "exports": {
-  ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+  ".": {
+    "types": "./dist/index.d.ts",
+    "import": "./dist/index.js",
+    "require": "./dist/index.js",
+    "default": "./dist/index.js"
+  },
   "./package.json": "./package.json"
 }
 ```
 
-No `./dist/…` subpaths → consumers physically cannot deep-import internal declarations (which *may* reference provider types — that is fine, they are unreachable).
+No `./dist/…` subpaths → exports-aware resolvers (bundler/node16) reject deep imports outright, while legacy `moduleResolution: "node"` can still reach `dist/` on disk — deep imports into internal declarations (which *may* reference provider types — that is fine, they are unreachable) are unsupported, not physically impossible.
 
 ### 3. The script (`scripts/check-exports.mjs`, 192 lines)
 
@@ -61,7 +66,7 @@ How the walk works:
 3. BFS from `dist/index.d.ts`, visiting each file once;
 4. apply checks 4–6 per visited file.
 
-**Allowed by design:** *unreachable* internal `.d.ts` files may reference Baileys — the exports map keeps consumers away from them. (The reachable graph is ~40 files; it does include `dist/backend/baileys/index.d.ts` and `dist/backend/baileys/BaileysBackend.d.ts` — re-exported via `createBaileysBackend` — but they pass because the *emitted* declarations expose only `browser`/`syncFullHistory`, no provider tokens.)
+**Allowed by design:** *unreachable* internal `.d.ts` files may reference Baileys — the exports map keeps consumers away from them. (The reachable graph is ~41 files; it does include `dist/backend/baileys/index.d.ts` and `dist/backend/baileys/BaileysBackend.d.ts` — re-exported via `createBaileysBackend` — but they pass because the *emitted* declarations expose only `browser`/`syncFullHistory`, no provider tokens.)
 
 ## Demonstration: a leak fails the build
 

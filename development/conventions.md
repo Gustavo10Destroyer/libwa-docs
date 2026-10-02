@@ -20,7 +20,7 @@ From `tsconfig.json` (all on):
 Additional:
 
 - `paths: { "libwa": ["./src/index.ts"] }` — examples import the real package name;
-- emit split: base config typechecks (no emit); `tsconfig.build.json` adds `rootDir: src` + declarations for `dist/`.
+- emit split: base config typechecks (no emit); `tsconfig.build.json` adds `rootDir: src` + `declaration`/`declarationMap` + `sourceMap`/`inlineSources` for `dist/`.
 
 ## Biome (`biome.json`)
 
@@ -46,7 +46,7 @@ Additional:
 | `noNonNullAssertion` (**error**) | no `!` — check instead |
 | recommended rules | suspicious/style/correctness defaults |
 
-`as unknown as X` is reserved for test fixtures where a provider-shaped literal is intentionally coerced, plus the single internal cast in `TypedEventEmitter`'s snapshot code.
+`as unknown as X` is reserved for test fixtures where a provider-shaped literal is intentionally coerced, plus the handful of internal casts in `TypedEventEmitter` (listener narrowing and the `listenersOf` snapshot mapping).
 
 ## Architecture rules
 

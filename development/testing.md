@@ -8,8 +8,8 @@ How `libwa` is tested: strategy, helpers, suite map, and what each layer guarant
 | --- | --- |
 | runner | vitest 3 (`npm test` = `vitest run`) |
 | location | `tests/**/*.test.ts`, node environment |
-| config | `vitest.config.ts` — coverage excludes `src/backend/baileys/**` and `src/index.ts` |
-| totals | **14 files, 252 tests**, ~2s wall time |
+| config | `vitest.config.ts` — coverage excludes only `src/index.ts` |
+| totals | **16 files, 324 tests** |
 
 ## Strategy: contract tests, not provider integration
 
@@ -64,20 +64,22 @@ Builders for every backend event: `messageEvent`, `reactionEvent`, `messageUpdat
 
 | Suite | Tests | Covers |
 | --- | --- | --- |
-| `client.test.ts` | 33 | state machine, dispatch order, group metadata ensure (≤60s TTL, in-flight dedupe, failure backoff, event patching without refetch), middleware integration, error routing, login deferred, destroy/logout, reconnect (fake timers), pairing-code flow |
-| `baileys-mapper.test.ts` | 52 | every content kind, wrappers (ephemeral/view-once/edit/device-sent), timestamps, JID normalization, references, mentions, stub filtering, LID ↔ phone id-pair capture, participant usernames, content riding along with sender-key distribution |
-| `messaging.test.ts` | 18 | send target resolution, quotes, mentions, react/edit/delete, capability errors, entity reconstruction from `BackendSentMessage` |
-| `interactions.test.ts` | 22 | guards/narrowing, factory classification, subclass fields, `interaction.member` (roles, cross-scheme, metadata-missing), `reply()` |
-| `commands.test.ts` | 13 | name/alias validation, duplicates, parse algorithm, case folding |
-| `baileys-auth.test.ts` | 11 | `AuthenticationState` ⇄ store round-trips, coalescing, buffer JSON, app-state key revival |
+| `client.test.ts` | 36 | state machine, dispatch order, group metadata ensure (≤60s TTL, in-flight dedupe, failure backoff, event patching without refetch), middleware integration, error routing, login deferred, destroy/logout, reconnect (fake timers), pairing-code flow |
+| `baileys-mapper.test.ts` | 57 | every content kind, wrappers (ephemeral/view-once/edit/device-sent), timestamps, JID normalization, references, mentions, stub filtering, LID ↔ phone id-pair capture, participant usernames, content riding along with sender-key distribution |
+| `messaging.test.ts` | 21 | send target resolution, quotes, mentions, react/edit/delete, capability errors, entity reconstruction from `BackendSentMessage` |
+| `interactions.test.ts` | 25 | guards/narrowing, factory classification, subclass fields, `interaction.member` (roles, cross-scheme, metadata-missing), `reply()` |
+| `commands.test.ts` | 18 | name/alias validation, duplicates, whole-definition atomicity, longest-prefix parse, case folding |
+| `baileys-auth.test.ts` | 13 | `AuthenticationState` ⇄ store round-trips, coalescing, buffer JSON, app-state key revival |
 | `payload.test.ts` | 10 | `normalizeReplyContent`: empty/ambiguous/caption/media, mention merging |
-| `session.test.ts` | 10 | file store atomicity, id validation, corrupt JSON, memory store |
+| `session.test.ts` | 15 | file store atomicity, id validation, corrupt JSON, unreadable files, concurrent writers, memory store |
 | `users.test.ts` | 30 | `client.users`: id-pair recording (messages/metadata/membership), capability and capability-less resolution, scheme guards, error propagation, `fetch` (formats/capabilities/lookups), push-name memory across id-only payloads, profile enrichment (`pictureUrl`/`about`/`accountType`) |
 | `groups.test.ts` | 21 | fetch/apply metadata, `ensure` cache (fetch-once, TTL window, in-flight dedupe, failure backoff), membership-change application (add/remove/promote/demote, cross-scheme, idempotent), participants ops, rename/description, unsupported paths, bare group ids, `Group.member` lookups (ids, users, cross-scheme) |
 | `errors.test.ts` | 8 | codes, `cause`, `toError`, `rethrowAsBackendError` passthrough/wrap |
 | `baileys-disconnect.test.ts` | 8 | Boom codes, HTTP statuses, network errnos → `DisconnectReason` |
 | `typed-event-emitter.test.ts` | 11 | on/once/off, ordering, snapshots, error hook, recursion safety |
-| `middleware.test.ts` | 5 | ordering, skip semantics, double-`next()` guard, throw propagation |
+| `middleware.test.ts` | 9 | ordering, skip semantics, double-`next()` guard, throw propagation, detached/adopted `next()` outcomes |
+| `entities.test.ts` | 18 | self identity under both id schemes, display-name fallbacks, chat/metadata cache identity (upgrade, cross-scheme merge), bounded caches (LRU eviction + reset), metadata revision guard |
+| `baileys-backend.test.ts` | 24 | adapter lifecycle (connect/close/logout, stale-socket teardown), send + event normalization, group metadata + `cachedGroupMetadata` hook, auto-pairing/re-arm — against a mocked provider |
 
 ## What we test (guarantees)
 
@@ -113,11 +115,11 @@ npm run test:watch                      # watch mode
 coverage: {
   reportsDirectory: "coverage",
   include: ["src/**/*.ts"],
-  exclude: ["src/backend/baileys/**", "src/index.ts"],
+  exclude: ["src/index.ts"],
 }
 ```
 
-The Baileys directory is excluded from coverage pressure (it is exercised by fixture-driven suites and would otherwise demand untestable socket-level code); `index.ts` is pure re-exports.
+Only `index.ts` is excluded — it is pure re-exports. `src/backend/baileys/` is **included** and covered by the fixture-driven suites (`baileys-mapper`, `baileys-auth`, `baileys-disconnect`, `baileys-backend`), which drive the adapter against a mocked provider instead of live sockets.
 
 ## See also
 
