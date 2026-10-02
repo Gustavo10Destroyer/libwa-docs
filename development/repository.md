@@ -38,7 +38,7 @@ libwa/
 
 | Item | Value |
 | --- | --- |
-| package name | `libwa` (v0.1.0, MIT, ESM, Node ≥ 18.17) |
+| package name | `libwa` (v0.3.0, MIT, ESM, Node ≥ 18.17) |
 | runtime dependency | `@whiskeysockets/baileys` only |
 | public surface | `exports`: `.` → `dist/index.js` + `dist/index.d.ts`, plus `./package.json` |
 | published files | `dist`, `docs`, `LICENSE` (README auto-included) |
@@ -49,7 +49,7 @@ libwa/
 
 ## Source inventory
 
-Roughly 6,800 lines of `src` across 46 TypeScript files, grouped by layer:
+Roughly 6,900 lines of `src` across 46 TypeScript files, grouped by layer:
 
 | Area | Files | Role |
 | --- | --- | --- |
@@ -62,17 +62,17 @@ Roughly 6,800 lines of `src` across 46 TypeScript files, grouped by layer:
 
 ## Tests
 
-14 suites, **241 tests**, ~3,990 lines + 394 lines of helpers:
+14 suites, **252 tests**, ~4,270 lines + 394 lines of helpers:
 
 | Suite | Focus |
 | --- | --- |
 | `baileys-mapper.test.ts` (52) | provider payload → domain mapping (largest suite) |
-| `client.test.ts` (30) | lifecycle, dispatch, reconnection, login/destroy/logout |
+| `client.test.ts` (33) | lifecycle, dispatch, group metadata ensure (TTL/dedupe/backoff), reconnection, login/destroy/logout |
 | `users.test.ts` (30) | `client.users` id-pair recording, resolution, fetch, name memory, profile enrichment |
 | `interactions.test.ts` (22) | guards, factory, subclasses, `interaction.member` |
 | `messaging.test.ts` (18) | send/react/edit/delete paths |
 | `commands.test.ts` (13) | registration + parsing |
-| `groups.test.ts` (13) | GroupService ops + `Group.member` lookups |
+| `groups.test.ts` (21) | GroupService ops, ensure cache, membership patches + `Group.member` lookups |
 | `typed-event-emitter.test.ts` (11) | emitter semantics |
 | `baileys-auth.test.ts` (11) | session-backed auth state |
 | `payload.test.ts` (10) | `normalizeReplyContent` validation |

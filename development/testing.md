@@ -9,7 +9,7 @@ How `libwa` is tested: strategy, helpers, suite map, and what each layer guarant
 | runner | vitest 3 (`npm test` = `vitest run`) |
 | location | `tests/**/*.test.ts`, node environment |
 | config | `vitest.config.ts` — coverage excludes `src/backend/baileys/**` and `src/index.ts` |
-| totals | **14 files, 241 tests**, ~2s wall time |
+| totals | **14 files, 252 tests**, ~2s wall time |
 
 ## Strategy: contract tests, not provider integration
 
@@ -64,16 +64,16 @@ Builders for every backend event: `messageEvent`, `reactionEvent`, `messageUpdat
 
 | Suite | Tests | Covers |
 | --- | --- | --- |
-| `client.test.ts` | 30 | state machine, dispatch order, group metadata ensure-once (member answers + refresh failures), middleware integration, error routing, login deferred, destroy/logout, reconnect (fake timers), pairing-code flow |
+| `client.test.ts` | 33 | state machine, dispatch order, group metadata ensure (≤60s TTL, in-flight dedupe, failure backoff, event patching without refetch), middleware integration, error routing, login deferred, destroy/logout, reconnect (fake timers), pairing-code flow |
 | `baileys-mapper.test.ts` | 52 | every content kind, wrappers (ephemeral/view-once/edit/device-sent), timestamps, JID normalization, references, mentions, stub filtering, LID ↔ phone id-pair capture, participant usernames, content riding along with sender-key distribution |
 | `messaging.test.ts` | 18 | send target resolution, quotes, mentions, react/edit/delete, capability errors, entity reconstruction from `BackendSentMessage` |
-| `interactions.test.ts` | 22 | guards/narrowing, factory classification, subclass fields, `interaction.member` (roles/tags, cross-scheme, metadata-missing), `reply()` |
+| `interactions.test.ts` | 22 | guards/narrowing, factory classification, subclass fields, `interaction.member` (roles, cross-scheme, metadata-missing), `reply()` |
 | `commands.test.ts` | 13 | name/alias validation, duplicates, parse algorithm, case folding |
 | `baileys-auth.test.ts` | 11 | `AuthenticationState` ⇄ store round-trips, coalescing, buffer JSON, app-state key revival |
 | `payload.test.ts` | 10 | `normalizeReplyContent`: empty/ambiguous/caption/media, mention merging |
 | `session.test.ts` | 10 | file store atomicity, id validation, corrupt JSON, memory store |
 | `users.test.ts` | 30 | `client.users`: id-pair recording (messages/metadata/membership), capability and capability-less resolution, scheme guards, error propagation, `fetch` (formats/capabilities/lookups), push-name memory across id-only payloads, profile enrichment (`pictureUrl`/`about`/`accountType`) |
-| `groups.test.ts` | 13 | fetch/apply metadata, participants ops, rename/description, unsupported paths, bare group ids, `Group.member` lookups (ids, users, cross-scheme) |
+| `groups.test.ts` | 21 | fetch/apply metadata, `ensure` cache (fetch-once, TTL window, in-flight dedupe, failure backoff), membership-change application (add/remove/promote/demote, cross-scheme, idempotent), participants ops, rename/description, unsupported paths, bare group ids, `Group.member` lookups (ids, users, cross-scheme) |
 | `errors.test.ts` | 8 | codes, `cause`, `toError`, `rethrowAsBackendError` passthrough/wrap |
 | `baileys-disconnect.test.ts` | 8 | Boom codes, HTTP statuses, network errnos → `DisconnectReason` |
 | `typed-event-emitter.test.ts` | 11 | on/once/off, ordering, snapshots, error hook, recursion safety |
@@ -86,7 +86,7 @@ Builders for every backend event: `messageEvent`, `reactionEvent`, `messageUpdat
 - **Reconnection policy**: fatal set honored, attempts exhausted, `reconnect: false`, backoff formula, counter reset on open, timer cancellation on `destroy()`.
 - **Validation paths**: each validation rule is exercised for the right input — assertions use the error class, `error.code`, or a regex on the constructor message.
 - **Identity lookups**: `client.users.fetch` accepted formats, capability-missing errors, lid resolution chains (pair → capability → undefined), push-name memory flowing to id-only payloads, and profile enrichment (defaults/types, normalization, unsupported/propagation paths).
-- **Group context**: metadata is fetched once per group before group message dispatches (participant/update events always refresh), failures dispatch with cached state + a warning, and `interaction.member` / `Group.member` answer roles and tags across both id schemes.
+- **Group context**: metadata resolves through `client.groups.ensure` — a ≤60s cache with one in-flight fetch per group; failures back off for the window and dispatch over cached state + a warning; membership/update events patch the cache before the interaction builds; `interaction.member` / `Group.member` answer roles across both id schemes.
 - **Mapping fidelity**: provider fixtures → exact `MessageContent` shapes (the biggest suite — the mapper is the highest-risk surface).
 - **Store semantics**: atomic writes, per-slot serialization, `null` for missing, `ERR_SESSION_ID` / `ERR_SESSION_CORRUPT`.
 - **No leaks**: `check:exports` (separate stage) proves the surface stays provider-free.
