@@ -188,7 +188,8 @@ export default withMermaid(
           {
             text: "Changelog",
             items: [
-              { text: "0.2.0 (current)", link: "/CHANGELOG#_0-2-0-2026-09-29" },
+              { text: "0.3.0 (current)", link: "/CHANGELOG#_0-3-0-2026-10-01" },
+              { text: "0.2.0", link: "/CHANGELOG#_0-2-0-2026-09-29" },
               { text: "0.1.0 (baseline)", link: "/CHANGELOG#_0-1-0-2026-09-27" },
             ],
           },

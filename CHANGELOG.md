@@ -2,6 +2,30 @@
 
 All notable changes to the **libwa** package (this site documents `libwa`, not the docs repo). Versions follow [Semantic Versioning](https://semver.org): minor bumps may contain breaking changes while the major version is `0` — each entry spells them out.
 
+## 0.3.0 (2026-10-01)
+
+### Removed
+
+- **Breaking:** `GroupMember.tag` is gone — providers never delivered member labels, so the field was `undefined` in every real payload. Use the member's `user.displayName` (`name` → `phone` → `id`), or read raw provider labels from `GroupMetadata.participants[].name` / `username`:
+
+  ```ts
+  // before (0.2.0)
+  group.members.forEach((m) => console.log(m.tag ?? m.user.displayName, m.role));
+  // after (0.3.0)
+  group.members.forEach((m) => console.log(m.user.displayName, m.role));
+  ```
+
+### Added
+
+- **`client.groups.ensure(target)`** — resolve a group through the client's metadata cache: when a fetch for that group was attempted within the last **60 seconds**, the cached `Group` resolves with no I/O; otherwise a single fetch runs (concurrent calls for the same group share one in-flight request). `interaction.member` is still `{ user, role }` — only the label is gone.
+- **Membership events patch the cache.** `add`/`remove`/`promote`/`demote` events are applied to the cached group metadata before the interaction builds — participants, roles and `memberCount` follow the event with no refetch. Patches are idempotent, match members across both id schemes (LID ↔ phone number via recorded pairs), and never downgrade a superadmin on a stray `promote`.
+
+### Changed
+
+- **Group metadata is fetched at most once per group per minute.** Every group interaction — participant, update, and message-family in a group — resolves metadata through `ensure()` instead of round-tripping whenever possible; events patch the cache between fetches, so `interaction.group` still reflects the event itself while fetch pressure stays bounded (anti-ban). Expect `group`/`member` data up to 60 seconds stale on quiet groups.
+- **Failures back off for the window.** A failed refresh marks the group for the rest of the 60 seconds: dispatches keep serving the last known state (logging `[group refresh]`) instead of retrying on every event, and the next `ensure` after the window retries.
+- `fetch()` and `group.refresh()` are unchanged in contract — always a provider round-trip — and now explicitly restart the 60-second window.
+
 ## 0.2.0 (2026-09-29)
 
 ### Added
