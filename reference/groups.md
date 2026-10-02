@@ -1,9 +1,10 @@
 # Groups
 
-<ApiBadge kind="class" /> `GroupService` (`client.groups`) fetches metadata and performs membership/setting operations. Everything it can't do surfaces as `UnsupportedOperationError`.
+<ApiBadge kind="class" /> `GroupService` (`client.groups`) resolves metadata through a 60-second cache (`ensure`), round-trips on demand (`fetch`), and performs membership/setting operations. Everything it can't do surfaces as `UnsupportedOperationError`.
 
 ```ts
-const group = await client.groups.fetch("1203630…@g.us");
+const group = await client.groups.fetch("1203630…@g.us"); // always a round-trip
+const fresh = await client.groups.ensure("1203630…@g.us"); // cache when ≤60s old
 await client.groups.addMembers(group, ["5511888888888@s.whatsapp.net"]);
 ```
 
@@ -20,6 +21,7 @@ Every method accepts either a `Group` entity or a raw chat id string — interna
 ```ts
 class GroupService {
   constructor(backend: WhatsAppBackend, entities: EntityFactory); // internal
+  ensure(target: GroupTarget): Promise<Group>;
   fetch(target: GroupTarget): Promise<Group>;
   addMembers(group: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
   removeMembers(group: GroupTarget, users: readonly (UserLike | UserId)[]): Promise<void>;
@@ -34,13 +36,32 @@ class GroupService {
 
 Exposed as `client.groups`; constructed by the `Client`. `Group` entity methods (`addMembers`, `promote`, …) delegate here.
 
+### `ensure`
+
+```ts
+ensure(target): Promise<Group>
+```
+
+Resolves a group through the **60-second metadata cache** — the path the client itself uses before every group dispatch:
+
+- a fetch for this group was *attempted* (success or failure) less than 60 seconds ago → the cached `Group` resolves immediately, **no I/O**;
+- otherwise → `fetch` runs once; concurrent `ensure` calls for the same group share a single in-flight request;
+- a failed fetch counts as an attempt: the window backs off (dispatches keep serving the last known state) and the next `ensure` after the window retries.
+
+Never throws for cache misses — failures surface exactly like [`fetch`](#fetch) (`NotFoundError` / `PermissionError` / `BackendError`).
+
+```ts
+const g = await client.groups.ensure("120363012345678901@g.us");
+g.memberCount; // answered from the cache when the window is young
+```
+
 ### `fetch`
 
 ```ts
 fetch(target): Promise<Group>
 ```
 
-Fetches full metadata and returns a **synchronized** `Group`: metadata applied, `name` cache updated, participants mapped to `User`s (with `isMe` set) — so a group fetched under a bare id round-trips with `group.id` in canonical `…@g.us` form.
+Fetches full metadata and returns a **synchronized** `Group`: metadata applied, `name` cache updated, participants mapped to `User`s (with `isMe` set) — so a group fetched under a bare id round-trips with `group.id` in canonical `…@g.us` form. Always a provider round-trip: it bypasses the 60-second cache and (re)starts the window (same for `group.refresh()`).
 
 **Errors:** `NotFoundError` / `PermissionError` (library errors from the backend pass through: `ERR_NOT_FOUND` / `ERR_PERMISSION`) and `BackendError` otherwise (context `Failed to fetch group <id>`).
 

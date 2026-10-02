@@ -25,7 +25,7 @@ Base class — never instantiated directly. Protected constructor: only subclass
     { name: 'chat', type: 'Chat', description: 'Chat the event belongs to. Direct or group — check isFromGroup().' },
     { name: 'group', type: 'Group | undefined', description: 'The group when isFromGroup() is true (same instance as chat for group interactions); undefined for direct chats.' },
     { name: 'author', type: 'User | undefined', description: 'Who caused it. undefined for some system events; for own messages it is you.' },
-    { name: 'member', type: 'GroupMember | undefined', description: 'The author’s membership in the group — { user, role, tag }. undefined outside groups, for author-less events, or while group metadata is unknown.' },
+    { name: 'member', type: 'GroupMember | undefined', description: 'The author’s membership in the group — { user, role }. undefined outside groups, for author-less events, or while group metadata is unknown.' },
     { name: 'isFromMe', type: 'boolean', description: 'True when the logged-in account is the author.' }
   ]"
 />
@@ -231,7 +231,7 @@ Participants were added/removed/promoted/demoted in a group.
 
 <ApiTable
   :rows="[
-    { name: 'group', type: 'Group', description: 'Target group — metadata is refreshed before dispatch, so members are current.' },
+    { name: 'group', type: 'Group', description: 'Target group — metadata is resolved before dispatch (≤60s cache) and this event patched onto it, so members are current.' },
     { name: 'action', type: 'GroupParticipantAction', description: '&quot;add&quot; | &quot;remove&quot; | &quot;promote&quot; | &quot;demote&quot; | &quot;other&quot;.' },
     { name: 'user', type: 'User | undefined (getter)', description: 'The affected user (users[0]) — exactly who was added/removed/promoted/demoted for single-participant changes.' },
     { name: 'users', type: 'readonly User[]', description: 'Affected participants (all of them; batches possible).' },
@@ -247,7 +247,7 @@ if (i.isGroupParticipantUpdate() && i.isRemove()) {
 ```
 
 ::: tip Fresh group data
-Before a group participant (or group update) interaction is dispatched, the client fetches the group's metadata from the provider; message-family interactions (message, command, reaction, edit/delete) in a group fetch it too **once per group** — the first group event pays the round-trip, later ones reuse the cache. `i.group.members` / `i.group.memberCount` therefore reflect the group as of the event, and `i.member` answers with the author's `{ user, role, tag }`. If a refresh fails, the interaction is still dispatched with whatever metadata is cached (a warning is logged, `member` then stays `undefined`).
+Before any group interaction dispatches — participant, update, or message-family — the client resolves the group through `client.groups.ensure`: a cached copy **up to 60 seconds** old is served without I/O, anything older (or missing) triggers a single fetch, and concurrent events share it — at most one round-trip per group per minute. Membership and metadata events patch the cache as they arrive, so `i.group.members` / `i.group.memberCount` reflect the event itself, and `i.member` answers with the author's `{ user, role }`. If a refresh fails, the interaction is still dispatched over the last known state (a `[group refresh]` warning is logged; `member` stays `undefined` only while no metadata has ever been resolved).
 :::
 
 ## GroupUpdateInteraction
@@ -260,7 +260,7 @@ Group metadata changed.
 
 <ApiTable
   :rows="[
-    { name: 'group', type: 'Group', description: 'Target group — metadata refreshed before dispatch, changes applied on top.' },
+    { name: 'group', type: 'Group', description: 'Target group — metadata resolved before dispatch (≤60s cache), changes applied on top.' },
     { name: 'changes', type: 'GroupUpdateChanges', description: 'Partial diff: { name?, description?, announceOnly?, locked? } — only changed keys present.' },
     { name: 'hasNameChange', type: 'boolean (getter)', description: 'changes.name !== undefined.' },
     { name: 'hasDescriptionChange', type: 'boolean (getter)', description: 'changes.description !== undefined.' }

@@ -97,7 +97,7 @@ The session slot this client uses (`ClientOptions.sessionId`, default `"default"
 | Field | Type | Role |
 | --- | --- | --- |
 | `messages` | `MessageService` | send / react / edit / delete ([reference](/reference/messaging)) |
-| `groups` | `GroupService` | metadata fetch + group management ([reference](/reference/groups)) |
+| `groups` | `GroupService` | metadata resolve (`ensure`/`fetch`) + group management ([reference](/reference/groups)) |
 | `commands` | `CommandRegistry` | command registration & parsing ([reference](/reference/commands)) |
 | `users` | `UserService` | phone number ↔ linked id resolution, account fetches ([reference](/reference/entities#userservice)) |
 

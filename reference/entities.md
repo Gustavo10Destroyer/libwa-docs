@@ -78,7 +78,7 @@ interface GroupParticipant {
 }
 ```
 
-`id` is the member's id in whatever scheme the provider reported for this group — phone-number JID or [linked id](/reference/ids#userid). `altId` is the same member's id in the *other* scheme (LID ↔ phone number), present when the provider delivered both forms; it is what lets you resolve a phone number for a linked id even for members who later leave the group. `name` is the participant label from group metadata, `username` the member's `@handle` — both feed [`GroupMember.tag`](#groupmember).
+`id` is the member's id in whatever scheme the provider reported for this group — phone-number JID or [linked id](/reference/ids#userid). `altId` is the same member's id in the *other* scheme (LID ↔ phone number), present when the provider delivered both forms; it is what lets you resolve a phone number for a linked id even for members who later leave the group. `name` is the participant label from group metadata (when present it seeds the member's remembered `user.name`), `username` the member's `@handle` — both raw provider fields.
 
 ### `GroupMember`
 
@@ -86,11 +86,10 @@ interface GroupParticipant {
 interface GroupMember {
   readonly user: User;              // account-level entity — same instance as interaction.author
   readonly role: GroupRole;         // inside this group only
-  readonly tag: string | undefined; // metadata name, else @handle
 }
 ```
 
-Membership is **group-scoped**: roles and tags differ per group, so they never live on [`User`](#user). Produced by [`Group.members`](#metadata-accessors) and [`Group.member()`](#methods), and attached to every group interaction as [`interaction.member`](/reference/interactions#interaction).
+Membership is **group-scoped**: roles differ per group, so they never live on [`User`](#user). Produced by [`Group.members`](#metadata-accessors) and [`Group.member()`](#methods), and attached to every group interaction as [`interaction.member`](/reference/interactions#interaction).
 
 ### `GroupRole`
 
@@ -146,11 +145,11 @@ A `Chat` with `kind` always `"group"` plus cached [`GroupMetadata`](#groupmetada
 
 | Getter | Type | Notes |
 | --- | --- | --- |
-| `metadata` | `GroupMetadata \| undefined` | Cached; `undefined` until fetched. Group participant/update interactions arrive with it already fetched (see [event pipeline](/architecture/event-pipeline#_4-client-subscription)). |
+| `metadata` | `GroupMetadata \| undefined` | Cached; `undefined` until resolved (at most 60s old — see [Groups](/reference/groups#ensure)). Group interactions arrive with it already resolved (see [event pipeline](/architecture/event-pipeline#_4-client-subscription)). |
 | `name` | `string \| undefined` (override) | Delegates to metadata, then parent cache. |
 | `description` | `string \| undefined` | From metadata. |
 | `owner` | `User \| undefined` | Built from `metadata.ownerId`. |
-| `members` | `readonly GroupMember[]` | Built from `metadata.participants` — each entry pairs the account's `User` with its `role` and `tag` here (empty until metadata is fetched). |
+| `members` | `readonly GroupMember[]` | Built from `metadata.participants` — each entry pairs the account's `User` with its `role` here (empty until metadata is fetched). |
 | `memberCount` | `number \| undefined` | `members.length` when metadata present. |
 | `announceOnly` | `boolean \| undefined` | From metadata. |
 
@@ -170,11 +169,11 @@ A `Chat` with `kind` always `"group"` plus cached [`GroupMetadata`](#groupmetada
 
 ```ts
 if (interaction.isFromGroup()) {
-  // group interactions already carry freshly fetched metadata;
-  // call group.refresh() whenever you need to re-fetch
+  // group interactions already carry resolved metadata (≤60s cache, kept
+  // current by events); call group.refresh() whenever you need a fresh fetch
   console.log(interaction.group.memberCount, interaction.group.announceOnly);
   interaction.member?.role;                 // the author's role in this group
-  interaction.group.member("222@s.whatsapp.net")?.tag;
+  interaction.group.member("222@s.whatsapp.net")?.role;
   await interaction.group.addMembers(["5511888888888@s.whatsapp.net"]);
 }
 ```
