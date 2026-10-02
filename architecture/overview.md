@@ -35,7 +35,7 @@ Your code: listeners, commands, middleware. Talks only to `Client`, services, en
 | Service | Field | Responsibility |
 | --- | --- | --- |
 | `MessageService` | `client.messages` | Validate/normalize `ReplyContent`, resolve targets, delegate to backend, convert confirmations back into domain `Message`s; react/edit/delete with capability checks |
-| `GroupService` | `client.groups` | Metadata fetch + member/setting operations, keeping cached metadata in sync |
+| `GroupService` | `client.groups` | Metadata resolve — `ensure` (60s cache, fetch on miss) or `fetch` (always round-trips) — plus member/setting operations, keeping cached metadata in sync |
 | `CommandRegistry` | `client.commands` | Registration, aliases, uniqueness, prefix parsing (data only — execution happens in the pipeline) |
 
 ### Entities
@@ -43,7 +43,7 @@ Your code: listeners, commands, middleware. Talks only to `Client`, services, en
 Value objects built by `EntityFactory`:
 
 - `Chat` / `Group` (one file; `Group extends Chat`, `isGroup()` narrows), `User`, `Message`;
-- chats and group metadata are **cached by id** — `interaction.chat === interaction.message.chat` — while `User` is recreated per event;
+- chats and group metadata are **cached by id** — `interaction.chat === interaction.message.chat` — while `User` is recreated per event; membership/update events patch the cached group between fetches;
 - entities expose intent-level actions (`chat.send`, `message.react`, `group.addMembers`) that delegate back to **services**, never to a provider.
 
 ### Interactions

@@ -9,7 +9,7 @@ flowchart TD
     C --> D["WhatsAppBackend events<br/>message · messageUpdate · reaction<br/>groupParticipants · groupUpdate · connection"]
     D --> E["Client subscriptions<br/>#subscribeBackend (once per instance)"]
     E -->|"messages · reactions"| F["InteractionFactory<br/>domain event → Interaction<br/>(command parsing happens here)"]
-    E -->|"groupParticipants · groupUpdate"| RF["groups.fetch(groupId)<br/>fresh metadata · warn on failure"]
+    E -->|"groupParticipants · groupUpdate"| RF["groups.ensure(groupId)<br/>≤60s cache · fetch on miss · warn on failure"]
     RF --> F
     F --> G["runMiddlewareChain<br/>ordered middlewares, may stop dispatch"]
     G --> H["command.execute()"]
@@ -55,7 +55,7 @@ sequenceDiagram
     P->>B: raw socket event
     B->>B: guards + map (or null)
     B->>C: connection | message | … (normalized)
-    Note over C: group events: groups.fetch (fresh metadata, warn on failure)
+    Note over C: group events: groups.ensure (≤60s cache, fetch on miss)
     C->>F: fromMessage | fromReaction | … (payload)
     F-->>C: Interaction
     C->>M: runMiddlewareChain(mws, i, last)
@@ -68,7 +68,7 @@ sequenceDiagram
 `Client.#subscribeBackend()` attaches the six listeners **once per instance** (guarded). Each payload:
 
 1. for message/reaction/update payloads, the matching `InteractionFactory.from*()` method → a concrete `Interaction` (never `null`; `ignoreSelf` only suppresses *command* promotion — the message still dispatches as a `MessageInteraction`). `connection` payloads go to the lifecycle logic instead;
-2. **group payloads (`groupParticipants`, `groupUpdate`) first await `client.groups.fetch(groupId)`**, so the interaction's `group` carries current members/metadata at dispatch time. A failed refresh logs `[group refresh]` at warn level and dispatch proceeds with the cached state — it is never blocked or dropped;
+2. **group payloads (`groupParticipants`, `groupUpdate`) — and message-family payloads in a group chat — first await `client.groups.ensure(groupId)`**: a cached copy at most 60 seconds old resolves with no I/O, older (or missing) metadata triggers one fetch shared by concurrent events. The `InteractionFactory` then applies the event's membership/metadata changes to that cache before the interaction is built, so the interaction's `group` reflects the event itself. A failed refresh logs `[group refresh]` at warn level and dispatch proceeds with the cached state — it is never blocked or dropped, and retries only once the 60-second window expires;
 3. `void this.#dispatch(interaction)` — fire-and-forget with errors captured internally.
 
 ### 5. Middleware → command → listeners

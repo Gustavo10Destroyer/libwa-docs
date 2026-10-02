@@ -80,7 +80,7 @@ ADR-style notes on why libwa is shaped the way it is. Each entry: **context → 
 
 ## 11. Entities cache identity, users don't
 
-**Decision.** `EntityFactory` caches chats/groups (and group metadata) by id so `interaction.chat === interaction.message.chat` and group state accumulates; `User` is a value object recreated per event.
+**Decision.** `EntityFactory` caches chats/groups (and group metadata) by id so `interaction.chat === interaction.message.chat` and group state accumulates — membership and update events patch the cached group directly, keeping it current between fetches; `User` is a value object recreated per event.
 
 **Consequence.** Stable references for identity comparisons without a global identity map that never evicts.
 
