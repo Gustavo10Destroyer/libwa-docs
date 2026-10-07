@@ -86,9 +86,10 @@ Emit `ValidationError` with a specific `code` (overriding `ERR_VALIDATION`):
 | `ERR_INVALID_USER_ID` | `UserService.fetch` (id not a phone JID / bare digits / `…@lid`) |
 | `ERR_INVALID_PHONE` | `Client.requestPairingCode` |
 | `ERR_UNSUPPORTED` | not a `ValidationError` code — it is the default code of `UnsupportedOperationError` (see the [code registry](#code-registry)) |
-| `ERR_SESSION_ID` | `assertSafeSessionId` (bad slot id) |
-| `ERR_SESSION_CORRUPT` | `FileSessionStore.load` (invalid JSON) |
+| `ERR_SESSION_ID` | `assertSafeSessionId` (bad slot id — file and SQLite stores) |
+| `ERR_SESSION_CORRUPT` | `FileSessionStore.load` (invalid JSON) / `SqliteSessionStore.load` (wrong column types) |
 | `ERR_SESSION_UNREADABLE` | `FileSessionStore.load` (file exists but cannot be read — non-ENOENT) |
+| `ERR_SESSION_STORE` | `SqliteSessionStore` (database cannot be opened/closed/read/written, used after `close()`, bad options, or the native `better-sqlite3` binding failed to load) |
 | `ERR_ENTITY_CONSTRUCTION` | `Chat` constructor guard (e.g. `new Chat({kind:"group"})` — use the factory's `group()` instead) |
 
 ## Subclass signatures

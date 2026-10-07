@@ -27,7 +27,7 @@ Regras:
 
 - O core **nunca** lê `data` — ele apenas passa objetos `Session` entre a store e o backend.
 - `provider` protege contra restore entre backends: um blob escrito por outro id de backend é ignorado com um aviso e reinicializado do zero.
-- Os ids de slot devem satisfazer `/^[A-Za-z0-9_-]{1,64}$/` (imposto pelo `FileSessionStore`; o id vem de `ClientOptions.sessionId`, padrão `"default"`).
+- Os ids de slot devem satisfazer `/^[A-Za-z0-9_-]{1,64}$/` (imposto pelas stores de arquivo e de SQLite; o id vem de `ClientOptions.sessionId`, padrão `"default"`).
 
 ## Stores {#stores}
 
@@ -51,6 +51,31 @@ new Client({ sessionStore: new FileSessionStore({ directory: ".sessions/work" })
 - `load()` de um slot ausente → `null` (apenas `ENOENT` conta como ausente — qualquer outra falha de leitura, ex. `EACCES`/`EISDIR`, lança `ValidationError` `ERR_SESSION_UNREADABLE`); JSON corrompido → `ValidationError` `ERR_SESSION_CORRUPT`.
 - `clear()` tolera slots ausentes (apaga com `force: true`).
 - O getter `directory` expõe o diretório resolvido.
+- Nenhum teardown necessário — nada fica aberto entre as chamadas.
+
+### SqliteSessionStore (produção) {#sqlitesessionstore-production}
+
+```ts
+import { Client, SqliteSessionStore } from "libwa";
+
+const store = new SqliteSessionStore({ filename: "var/bot.db" });
+const sales = new Client({ sessionStore: store, sessionId: "sales" });
+const support = new Client({ sessionStore: store, sessionId: "support" });
+
+await Promise.all([sales.login(), support.login()]);
+// no encerramento:
+await sales.destroy();
+await support.destroy();
+store.close(); // você é dono do handle — o libwa nunca o fecha
+```
+
+Um único arquivo de banco de dados guarda todos os slots. Prefira-o à store de arquivo assim que as sessões importarem: modo WAL mais `synchronous = FULL` significa que a última escrita de credencial sobrevive a uma queda de energia, um `busy_timeout` deixa um segundo processo (uma ferramenta de migração, uma segunda instância) bloquear em vez de dar erro, e cada save é um único upsert transacional.
+
+- Opções: `filename` (padrão `libwa-sessions.db`; diretórios pais ausentes são criados) e `busyTimeoutMs` (padrão `5000`).
+- Os ids são validados exatamente como no `FileSessionStore`; uma linha com tipos de coluna errados → `ERR_SESSION_CORRUPT`.
+- Usada depois de `close()` → `ERR_SESSION_STORE`, assim bugs de encerramento falham de forma evidente.
+- A versão do schema vive no `PRAGMA user_version`: um banco escrito por um libwa mais novo é recusado em vez de ser aberto com um schema que esta build não entende.
+- Suportada por `better-sqlite3`, carregada de forma lazy — `import "libwa"` nunca toca no binding nativo. Uma instalação feita com `--ignore-scripts` falha com `ERR_SESSION_STORE` e instruções, não com um crash de carregamento.
 
 ### MemorySessionStore (testes / efêmera) {#memorysessionstore-tests-ephemeral}
 
@@ -81,7 +106,7 @@ const redisStore: SessionStore = {
 };
 ```
 
-Expectativas: `save` deve persistir `data` sem perda (bytes!); `load` retorna `null` para as ausentes; `clear` é idempotente. Todo o resto (filas, validação) é problema da sua store.
+Expectativas: `save` deve persistir `data` sem perda (bytes!); `load` retorna `null` para as ausentes; `clear` é idempotente. Todo o resto (filas, validação) é problema da sua store. Se a sua store mantém um socket ou uma conexão, adicione o opcional `close(): Promise<void> | void` — o libwa nunca o chama, então chame você mesmo no encerramento.
 
 ## O que há dentro do blob (Baileys) {#what-s-inside-the-blob-baileys}
 
@@ -165,7 +190,7 @@ const b = new Client({ sessionStore: store, sessionId: "support" });
 await Promise.all([a.login(), b.login()]);
 ```
 
-Cada slot é um arquivo de sessão / chave de store independente. Nunca rode dois clientes vivos no **mesmo** slot: as escritas se intercalariam e os dois sockets disputariam uma única sessão de dispositivo.
+Cada slot é um arquivo de sessão / chave de store independente. Nunca rode dois clientes vivos no **mesmo** slot: as escritas se intercalariam e os dois sockets disputariam uma única sessão de dispositivo. Com o `SqliteSessionStore` os slots são linhas em uma única tabela, então a mesma regra vale — um client vivo por slot, uma store por deployment.
 
 ## logout vs destroy {#logout-vs-destroy}
 
@@ -201,10 +226,11 @@ await client.destroy();
 
 ## Higiene de sessão {#session-hygiene}
 
-- **`.libwa/` é sensível** — ele autentica a sua conta. Adicione ao `.gitignore`, nunca faça commit, nunca compartilhe.
+- **`.libwa/` (e `*.db`) é sensível** — ele autentica a sua conta. Adicione ao `.gitignore`, nunca faça commit, nunca compartilhe. O SQLite também pode deixar arquivos `-wal` / `-shm` ao lado do banco; eles pertencem ao mesmo segredo.
 - **Rotacionando dispositivos**: o WhatsApp pode revogar sessões remotamente → a próxima conexão resulta em `DisconnectReason.LoggedOut` → evento `disconnect`, sem retry. Apague o slot e refaça o pareamento.
 - **Apagar o slot** (`rm .libwa/default.json` ou `sessionStore.clear(id)`) força um login novo.
-- **Slot corrompido**: a biblioteca falha com `ValidationError` dizendo para limpá-lo — corrija apagando o arquivo, não editando o JSON à mão.
+- **Slot corrompido**: a biblioteca falha com `ValidationError` dizendo para limpá-lo — corrija apagando o arquivo/linha, não editando o JSON à mão.
+- **Encerramento**: `await client.destroy()` primeiro (para de escrever), depois `store.close()` se você estiver usando `SqliteSessionStore`.
 
 ## Relacionados {#related}
 

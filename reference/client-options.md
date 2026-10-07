@@ -20,8 +20,8 @@ const client = new Client(options);
 <ApiTable
   :rows="[
     { name: 'backend', type: 'WhatsAppBackend | (() => WhatsAppBackend)', def: 'undefined → createDefaultBackend()', description: 'Provider adapter. Instances are used directly; factories are invoked once per Client. Never share one instance across clients.' },
-    { name: 'sessionStore', type: 'SessionStore', def: 'undefined → new FileSessionStore()', description: 'Where login state persists. Defaults to a filesystem store in .libwa/.' },
-    { name: 'sessionId', type: 'string', def: '&quot;default&quot;', description: 'Slot id inside the store; must be usable as a filename stem ([A-Za-z0-9_-]{1,64} for FileSessionStore).' },
+    { name: 'sessionStore', type: 'SessionStore', def: 'undefined → new FileSessionStore()', description: 'Where login state persists. Defaults to a filesystem store in .libwa/; swap in SqliteSessionStore for production, MemorySessionStore for tests, or your own.' },
+    { name: 'sessionId', type: 'string', def: '&quot;default&quot;', description: 'Slot id inside the store; must match [A-Za-z0-9_-]{1,64} (enforced by the file and SQLite stores).' },
     { name: 'logger', type: 'Logger', def: 'undefined → nullLogger', description: 'Internal diagnostics sink. The default discards everything — inject a logger to see anything.' },
     { name: 'commands', type: 'CommandOptions | false', def: 'undefined → { prefix: &quot;!&quot; }', description: 'Command parsing configuration, or false to disable parsing entirely.' },
     { name: 'reconnect', type: 'ReconnectOptions | false', def: 'undefined → DEFAULT_RECONNECT object', description: 'Reconnection policy, or false to disable automatic retries.' },

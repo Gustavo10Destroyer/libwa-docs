@@ -21,7 +21,7 @@ const client = new Client({
 <ApiTable
   :rows="[
     { name: 'backend', type: 'WhatsAppBackend | (() => WhatsAppBackend)', def: 'createDefaultBackend()', description: 'Adaptador do provedor. Uma instância é usada diretamente; uma função é invocada uma vez por construção de Client. Padrão: o backend Baileys incluso.' },
-    { name: 'sessionStore', type: 'SessionStore', def: 'new FileSessionStore()', description: 'Persistência do estado de login. Padrão: um store de sistema de arquivos escrevendo em .libwa/.' },
+    { name: 'sessionStore', type: 'SessionStore', def: 'new FileSessionStore()', description: 'Persistência do estado de login. Padrão: um store de sistema de arquivos escrevendo em .libwa/; use SqliteSessionStore em produção.' },
     { name: 'sessionId', type: 'string', def: '&quot;default&quot;', description: 'Id do slot dentro do store. Use ids distintos para múltiplas contas sobre um único store.' },
     { name: 'logger', type: 'Logger', def: 'nullLogger', description: 'Recebe diagnósticos internos. Padrão: um logger silencioso — nada é impresso a menos que você injete um.' },
     { name: 'commands', type: 'CommandOptions | false', def: '{ prefix: &quot;!&quot; }', description: 'Configuração do parsing de comandos, ou false para desativar completamente o parsing de prefixo (cada mensagem de texto permanece um MessageInteraction simples).' },
@@ -114,6 +114,24 @@ const support = new Client({ sessionStore: store, sessionId: "support" });
 ```
 
 Cada slot recebe seu próprio arquivo `<directory>/<id>.json`. Os ids de slot devem corresponder a `/^[A-Za-z0-9_-]{1,64}$/` (exigido pelo store — veja [`assertSafeSessionId`](/pt-BR/reference/sessions#assertsafesessionid)).
+
+### Produção: um único banco SQLite {#production-one-sqlite-database}
+
+```ts
+import { Client, SqliteSessionStore } from "libwa";
+
+const store = new SqliteSessionStore({ filename: "var/bots.db", busyTimeoutMs: 5000 });
+
+const sales = new Client({ sessionStore: store, sessionId: "sales" });
+const support = new Client({ sessionStore: store, sessionId: "support" });
+
+// … no encerramento:
+await sales.destroy();
+await support.destroy();
+store.close(); // você é dono do handle — o libwa nunca o fecha
+```
+
+Cada slot é uma linha em um único banco em modo WAL: resistente a crashes (`synchronous = FULL`), seguro para compartilhar entre processos (`busy_timeout`) e um único upsert transacional por save. Veja [Sessões → SqliteSessionStore](/pt-BR/reference/sessions#sqlitesessionstore).
 
 ### Bot de teste sem persistência {#test-bot-with-no-persistence}
 

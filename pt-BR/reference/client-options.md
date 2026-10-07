@@ -20,8 +20,8 @@ const client = new Client(options);
 <ApiTable
   :rows="[
     { name: 'backend', type: 'WhatsAppBackend | (() => WhatsAppBackend)', def: 'undefined → createDefaultBackend()', description: 'Adaptador do provedor. Instâncias são usadas diretamente; factories são chamadas uma vez por Client. Nunca compartilhe uma instância entre clients.' },
-    { name: 'sessionStore', type: 'SessionStore', def: 'undefined → new FileSessionStore()', description: 'Onde o estado de login persiste. O padrão é um store em disco em .libwa/.' },
-    { name: 'sessionId', type: 'string', def: '&quot;default&quot;', description: 'Id do slot dentro do store; deve poder ser usado como base de nome de arquivo ([A-Za-z0-9_-]{1,64} para FileSessionStore).' },
+    { name: 'sessionStore', type: 'SessionStore', def: 'undefined → new FileSessionStore()', description: 'Onde o estado de login persiste. O padrão é um store em disco em .libwa/; troque por SqliteSessionStore em produção, MemorySessionStore em testes, ou o seu próprio.' },
+    { name: 'sessionId', type: 'string', def: '&quot;default&quot;', description: 'Id do slot dentro da store; deve casar com [A-Za-z0-9_-]{1,64} (imposto pelas stores de arquivo e SQLite).' },
     { name: 'logger', type: 'Logger', def: 'undefined → nullLogger', description: 'Destino dos diagnósticos internos. O padrão descarta tudo — injete um logger para ver algo.' },
     { name: 'commands', type: 'CommandOptions | false', def: 'undefined → { prefix: &quot;!&quot; }', description: 'Configuração da análise de comandos, ou false para desativá-la completamente.' },
     { name: 'reconnect', type: 'ReconnectOptions | false', def: 'undefined → DEFAULT_RECONNECT object', description: 'Política de reconexão, ou false para desativar as novas tentativas automáticas.' },

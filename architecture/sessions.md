@@ -14,12 +14,14 @@ flowchart TD
     end
     subgraph Stores["Implementations"]
         FS["FileSessionStore<br/>.libwa/id.json · temp+rename"]
+        SQ["SqliteSessionStore<br/>one WAL db · upsert per slot"]
         MS["MemorySessionStore<br/>Map (tests)"]
         Custom["Your Redis/SQL store"]
     end
     Auth --> Ser --> Coalesce
     Coalesce -->|"save(Session)"| SS
     SS --> FS
+    SS --> SQ
     SS --> MS
     SS --> Custom
     FS -.->|"load()"| Auth
@@ -39,6 +41,7 @@ interface SessionStore {
   load(id): Promise<Session | null>;
   save(session): Promise<void>;
   clear(id): Promise<void>;
+  close?(): Promise<void> | void; // optional — caller-owned teardown
 }
 ```
 
@@ -48,6 +51,7 @@ Design rules:
 2. **Slot = `sessionId`** — multiple accounts share one store (`sessionId: "alice"` / `"bob"`).
 3. **Missing ≠ error** — `load()` returns `null`; `clear()` of a missing slot is a no-op.
 4. **Only through the given store** — a backend never opens files or reads env; `BackendConnectOptions.sessionStore` is the single channel.
+5. **Caller owns teardown** — libwa never calls `close()`; a store that holds an fd or a connection exposes it, and the code that created the store invokes it.
 
 ## Baileys persistence
 
@@ -88,6 +92,19 @@ sequenceDiagram
 - corrupt JSON → `ValidationError` `ERR_SESSION_CORRUPT` (cause preserved);
 - file exists but cannot be read (`EACCES`, `EIO`, … — anything but `ENOENT`) → `ValidationError` `ERR_SESSION_UNREADABLE` (cause preserved): a stored session is never mistaken for "no session".
 
+### SqliteSessionStore
+
+- one database file for every slot (`filename` default `libwa-sessions.db`), table `sessions(id, provider, data, updated_at) WITHOUT ROWID`;
+- **durable**: `journal_mode = WAL` + `synchronous = FULL`; skipped for `":memory:"`;
+- **multi-process**: `busy_timeout = busyTimeoutMs` (default 5000 ms) so a second writer blocks instead of raising `SQLITE_BUSY`;
+- **serialized per save**: a single `INSERT … ON CONFLICT(id) DO UPDATE` — SQLite serializes writers, so there is no read-modify-write window;
+- **safe ids**: the same `assertSafeSessionId` as the file store → `ERR_SESSION_ID`;
+- **schema version** in `PRAGMA user_version` — opening a database written by a newer libwa fails with `ERR_SESSION_STORE` instead of guessing at unknown columns;
+- **closed handle** → `ERR_SESSION_STORE` on every subsequent call (`#assertOpen`), never a silent reopen;
+- corrupt column types → `ERR_SESSION_CORRUPT`; driver load failure (missing `better-sqlite3` binding) → `ERR_SESSION_STORE` with the reinstall hint.
+
+The driver is loaded lazily through `createRequire`, so `import "libwa"` never touches the native binding — a store construction is the only thing that can fail on it.
+
 ### MemorySessionStore
 
 `Map<string, Session>` — tests and throwaway processes; no id validation (no filesystem), no persistence.
@@ -108,13 +125,18 @@ Any three-method implementation works (see the [Redis sketch](/reference/session
 | `destroy()` | disconnect only — **session preserved** for next process run |
 | `provider` mismatch on load | warn + fresh creds (old bytes effectively abandoned) |
 
-Multi-account: one `FileSessionStore`, distinct `sessionId`s — each gets an independent file and connection.
+Multi-account: one store, distinct `sessionId`s — each gets an independent slot and connection.
 
 ```ts
-const store = new FileSessionStore({ directory: "/var/lib/bots" });
-const alice = new Client({ sessionStore: store, sessionId: "alice" });
-const bob = new Client({ sessionStore: store, sessionId: "bob" });
+const file = new FileSessionStore({ directory: "/var/lib/bots" });
+const alice = new Client({ sessionStore: file, sessionId: "alice" });
+const bob = new Client({ sessionStore: file, sessionId: "bob" });
 // .libwa/alice.json · .libwa/bob.json
+
+const db = new SqliteSessionStore({ filename: "/var/lib/bots/sessions.db" });
+const carol = new Client({ sessionStore: db, sessionId: "carol" });
+const dave = new Client({ sessionStore: db, sessionId: "dave" });
+// sessions.db → two rows · close() is yours to call on shutdown
 ```
 
 ## Why not parse sessions in the core?

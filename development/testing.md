@@ -9,7 +9,7 @@ How `libwa` is tested: strategy, helpers, suite map, and what each layer guarant
 | runner | vitest 3 (`npm test` = `vitest run`) |
 | location | `tests/**/*.test.ts`, node environment |
 | config | `vitest.config.ts` — coverage excludes only `src/index.ts` |
-| totals | **16 files, 324 tests** |
+| totals | **17 files, 349 tests** |
 
 ## Strategy: contract tests, not provider integration
 
@@ -68,6 +68,7 @@ Builders for every backend event: `messageEvent`, `reactionEvent`, `messageUpdat
 | `baileys-mapper.test.ts` | 57 | every content kind, wrappers (ephemeral/view-once/edit/device-sent), timestamps, JID normalization, references, mentions, stub filtering, LID ↔ phone id-pair capture, participant usernames, content riding along with sender-key distribution |
 | `messaging.test.ts` | 21 | send target resolution, quotes, mentions, react/edit/delete, capability errors, entity reconstruction from `BackendSentMessage` |
 | `interactions.test.ts` | 25 | guards/narrowing, factory classification, subclass fields, `interaction.member` (roles, cross-scheme, metadata-missing), `reply()` |
+| `sqlite-session-store.test.ts` | 25 | SQLite store contract (`load`/`save`/`clear`), shared-file multi-slot, sequential + concurrent writers, `:memory:` mode, WAL + `PRAGMA user_version`, busy-timeout lock contention, `close()` lifecycle, corrupt-row shapes, id and payload validation, `resolveDriver` interop, root export |
 | `commands.test.ts` | 18 | name/alias validation, duplicates, whole-definition atomicity, longest-prefix parse, case folding |
 | `baileys-auth.test.ts` | 13 | `AuthenticationState` ⇄ store round-trips, coalescing, buffer JSON, app-state key revival |
 | `payload.test.ts` | 10 | `normalizeReplyContent`: empty/ambiguous/caption/media, mention merging |
@@ -90,7 +91,7 @@ Builders for every backend event: `messageEvent`, `reactionEvent`, `messageUpdat
 - **Identity lookups**: `client.users.fetch` accepted formats, capability-missing errors, lid resolution chains (pair → capability → undefined), push-name memory flowing to id-only payloads, and profile enrichment (defaults/types, normalization, unsupported/propagation paths).
 - **Group context**: metadata resolves through `client.groups.ensure` — a ≤60s cache with one in-flight fetch per group; failures back off for the window and dispatch over cached state + a warning; membership/update events patch the cache before the interaction builds; `interaction.member` / `Group.member` answer roles across both id schemes.
 - **Mapping fidelity**: provider fixtures → exact `MessageContent` shapes (the biggest suite — the mapper is the highest-risk surface).
-- **Store semantics**: atomic writes, per-slot serialization, `null` for missing, `ERR_SESSION_ID` / `ERR_SESSION_CORRUPT`.
+- **Store semantics**: atomic writes, per-slot serialization, `null` for missing, `ERR_SESSION_ID` / `ERR_SESSION_CORRUPT`; SQLite parity — one database for every slot, WAL durability, busy-timeout locking, closed-handle rejection, corrupt-row detection, lazy driver load.
 - **No leaks**: `check:exports` (separate stage) proves the surface stays provider-free.
 
 ## Conventions inside tests

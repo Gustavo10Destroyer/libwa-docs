@@ -1,18 +1,18 @@
 # Public API guard
 
-"No provider types in the public API" is **mechanically enforced**, not a review rule. `npm run check:exports` fails the build the moment Baileys becomes reachable from `dist/index.d.ts`.
+"No implementation dependencies in the public API" is **mechanically enforced**, not a review rule. `npm run check:exports` fails the build the moment Baileys — or the bundled SQLite driver — becomes reachable from `dist/index.d.ts`.
 
 ```bash
 npm run build && npm run check:exports
-# check:exports: ok — 41 declaration file(s) reachable from dist/index.d.ts,
-# no provider tokens in the public type surface.
+# check:exports: ok — 42 declaration file(s) reachable from dist/index.d.ts,
+# no implementation-dependency tokens in the public type surface.
 ```
 
 ## The three layers of defense
 
 ```mermaid
 flowchart TD
-    L1["1. Import discipline<br/>only src/backend/baileys/ may import @whiskeysockets/baileys"] --> L2
+    L1["1. Import discipline<br/>provider only in src/backend/baileys/<br/>driver only in src/auth (lazy require)"] --> L2
     L2["2. Package exports map<br/>only '.' and './package.json'"] --> L3
     L3["3. check:exports<br/>walks reachable d.ts graph from dist/index.d.ts"] --> OK["surface is clean"]
     L3 -->|"provider token found"| FAIL["exit 1 + report"]
@@ -20,7 +20,7 @@ flowchart TD
 
 ### 1. Source discipline
 
-By convention (and review), provider imports live exclusively in `src/backend/baileys/`. `createDefaultBackend.ts` is the only core file naming the provider factory, and it does so lazily through the adapter's own entry.
+By convention (and review), provider imports live exclusively in `src/backend/baileys/`. `createDefaultBackend.ts` is the only core file naming the provider factory, and it does so lazily through the adapter's own entry. The SQLite driver is the second dependency allowed outside that directory — `src/auth/sqliteDriver.ts` loads it with `createRequire` at construction time only, and no declaration reachable from `dist/index.d.ts` may mention it.
 
 ### 2. Exports map
 
@@ -38,14 +38,14 @@ By convention (and review), provider imports live exclusively in `src/backend/ba
 
 No `./dist/…` subpaths → exports-aware resolvers (bundler/node16) reject deep imports outright, while legacy `moduleResolution: "node"` can still reach `dist/` on disk — deep imports into internal declarations (which *may* reference provider types — that is fine, they are unreachable) are unsupported, not physically impossible.
 
-### 3. The script (`scripts/check-exports.mjs`, 192 lines)
+### 3. The script (`scripts/check-exports.mjs`, 204 lines)
 
 Runs **after build**; exits non-zero with a violation report.
 
 **Forbidden tokens:**
 
 ```
-@whiskeysockets/baileys · WAMessage · WASocket · IWebMessageInfo · makeWASocket · proto.
+@whiskeysockets/baileys · WAMessage · WASocket · IWebMessageInfo · makeWASocket · proto. · better-sqlite3
 ```
 
 **Checks, in order:**
@@ -56,7 +56,7 @@ Runs **after build**; exits non-zero with a violation report.
 | 2 | exports map keys | any key besides `.` / `./package.json`; wrong `types` pointer |
 | 3 | reachability walk | relative import in a reachable `.d.ts` cannot be resolved (missing declaration) |
 | 4 | `index.d.ts` scan | **any** forbidden token anywhere in the root declaration |
-| 5 | reachable files: provider import | file text contains `@whiskeysockets/baileys` (forces consumers to resolve provider declarations) |
+| 5 | reachable files: dependency import | file text contains `@whiskeysockets/baileys` or `better-sqlite3` (forces consumers to resolve provider/driver declarations) |
 | 6 | reachable files: export lines | an `export …` line/block mentions a forbidden type name |
 
 How the walk works:
@@ -66,7 +66,7 @@ How the walk works:
 3. BFS from `dist/index.d.ts`, visiting each file once;
 4. apply checks 4–6 per visited file.
 
-**Allowed by design:** *unreachable* internal `.d.ts` files may reference Baileys — the exports map keeps consumers away from them. (The reachable graph is ~41 files; it does include `dist/backend/baileys/index.d.ts` and `dist/backend/baileys/BaileysBackend.d.ts` — re-exported via `createBaileysBackend` — but they pass because the *emitted* declarations expose only `browser`/`syncFullHistory`, no provider tokens.)
+**Allowed by design:** *unreachable* internal `.d.ts` files may reference Baileys — the exports map keeps consumers away from them. (The reachable graph is ~42 files; it does include `dist/backend/baileys/index.d.ts` and `dist/backend/baileys/BaileysBackend.d.ts` — re-exported via `createBaileysBackend` — but they pass because the *emitted* declarations expose only `browser`/`syncFullHistory`, no provider tokens.)
 
 ## Demonstration: a leak fails the build
 

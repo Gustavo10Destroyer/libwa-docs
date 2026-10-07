@@ -21,7 +21,7 @@ const client = new Client({
 <ApiTable
   :rows="[
     { name: 'backend', type: 'WhatsAppBackend | (() => WhatsAppBackend)', def: 'createDefaultBackend()', description: 'Provider adapter. A instance is used directly; a function is invoked once per Client construction. Defaults to the bundled Baileys backend.' },
-    { name: 'sessionStore', type: 'SessionStore', def: 'new FileSessionStore()', description: 'Persistence for login state. Defaults to a filesystem store writing into .libwa/.' },
+    { name: 'sessionStore', type: 'SessionStore', def: 'new FileSessionStore()', description: 'Persistence for login state. Defaults to a filesystem store writing into .libwa/; use SqliteSessionStore in production.' },
     { name: 'sessionId', type: 'string', def: '&quot;default&quot;', description: 'Slot id inside the store. Use distinct ids for multiple accounts over one store.' },
     { name: 'logger', type: 'Logger', def: 'nullLogger', description: 'Receives internal diagnostics. Defaults to a silent logger — nothing is printed unless you inject one.' },
     { name: 'commands', type: 'CommandOptions | false', def: '{ prefix: &quot;!&quot; }', description: 'Command parsing configuration, or false to disable prefix parsing entirely (every text message stays a plain MessageInteraction).' },
@@ -114,6 +114,24 @@ const support = new Client({ sessionStore: store, sessionId: "support" });
 ```
 
 Each slot gets its own `<directory>/<id>.json` file. Slot ids must match `/^[A-Za-z0-9_-]{1,64}$/` (enforced by the store — see [`assertSafeSessionId`](/reference/sessions#assertsafesessionid)).
+
+### Production: one SQLite database
+
+```ts
+import { Client, SqliteSessionStore } from "libwa";
+
+const store = new SqliteSessionStore({ filename: "var/bots.db", busyTimeoutMs: 5000 });
+
+const sales = new Client({ sessionStore: store, sessionId: "sales" });
+const support = new Client({ sessionStore: store, sessionId: "support" });
+
+// … on shutdown:
+await sales.destroy();
+await support.destroy();
+store.close(); // you own the handle — libwa never closes it
+```
+
+Every slot is a row in one WAL-mode database: crash-safe (`synchronous = FULL`), safe to share between processes (`busy_timeout`), and a single transactional upsert per save. See [Sessions → SqliteSessionStore](/reference/sessions#sqlitesessionstore).
 
 ### Test bot with no persistence
 

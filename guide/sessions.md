@@ -27,7 +27,7 @@ Rules:
 
 - The core **never** reads `data` — it only passes `Session` objects between store and backend.
 - `provider` guards against cross-backend restore: a blob written by another backend id is ignored with a warning and re-initialized fresh.
-- Slot ids must satisfy `/^[A-Za-z0-9_-]{1,64}$/` (enforced by `FileSessionStore`; the id comes from `ClientOptions.sessionId`, default `"default"`).
+- Slot ids must satisfy `/^[A-Za-z0-9_-]{1,64}$/` (enforced by the file and SQLite stores; the id comes from `ClientOptions.sessionId`, default `"default"`).
 
 ## Stores
 
@@ -51,6 +51,31 @@ new Client({ sessionStore: new FileSessionStore({ directory: ".sessions/work" })
 - `load()` of a missing slot → `null` (only `ENOENT` counts as missing — any other read failure, e.g. `EACCES`/`EISDIR`, throws `ValidationError` `ERR_SESSION_UNREADABLE`); corrupt JSON → `ValidationError` `ERR_SESSION_CORRUPT`.
 - `clear()` tolerates missing slots (deletes with `force: true`).
 - `directory` getter exposes the resolved directory.
+- No teardown needed — nothing is held open between calls.
+
+### SqliteSessionStore (production)
+
+```ts
+import { Client, SqliteSessionStore } from "libwa";
+
+const store = new SqliteSessionStore({ filename: "var/bot.db" });
+const sales = new Client({ sessionStore: store, sessionId: "sales" });
+const support = new Client({ sessionStore: store, sessionId: "support" });
+
+await Promise.all([sales.login(), support.login()]);
+// on shutdown:
+await sales.destroy();
+await support.destroy();
+store.close(); // you own the handle — libwa never closes it
+```
+
+One database file holds every slot. Prefer it over the file store once sessions matter: WAL mode plus `synchronous = FULL` means the last credential write survives a power loss, a `busy_timeout` lets a second process (a migration tool, a second instance) block instead of erroring, and each save is a single transactional upsert.
+
+- Options: `filename` (default `libwa-sessions.db`; missing parent directories are created) and `busyTimeoutMs` (default `5000`).
+- Ids are validated exactly like `FileSessionStore`; a row with the wrong column types → `ERR_SESSION_CORRUPT`.
+- Used after `close()` → `ERR_SESSION_STORE`, so shutdown bugs fail loudly.
+- The schema version lives in `PRAGMA user_version`: a database written by a newer libwa is refused instead of being opened with a schema this build does not understand.
+- Backed by `better-sqlite3`, loaded lazily — `import "libwa"` never touches the native binding. An install done with `--ignore-scripts` fails with `ERR_SESSION_STORE` and instructions, not a load crash.
 
 ### MemorySessionStore (tests / ephemeral)
 
@@ -81,7 +106,7 @@ const redisStore: SessionStore = {
 };
 ```
 
-Expectations: `save` must persist `data` losslessly (bytes!); `load` returns `null` for missing; `clear` is idempotent. Everything else (queues, validation) is your store's business.
+Expectations: `save` must persist `data` losslessly (bytes!); `load` returns `null` for missing; `clear` is idempotent. Everything else (queues, validation) is your store's business. If your store holds a socket or connection, add the optional `close(): Promise<void> | void` — libwa never calls it, so call it yourself on shutdown.
 
 ## What's inside the blob (Baileys)
 
@@ -165,7 +190,7 @@ const b = new Client({ sessionStore: store, sessionId: "support" });
 await Promise.all([a.login(), b.login()]);
 ```
 
-Each slot is an independent session file / store key. Never run two live clients on the **same** slot: writes would interleave and both sockets would fight for one device session.
+Each slot is an independent session file / store key. Never run two live clients on the **same** slot: writes would interleave and both sockets would fight for one device session. With `SqliteSessionStore` the slots are rows in one table, so the same rule applies — one live client per slot, one store per deployment.
 
 ## Logout vs destroy
 
@@ -201,10 +226,11 @@ await client.destroy();
 
 ## Session hygiene
 
-- **`.libwa/` is sensitive** — it authenticates your account. Add to `.gitignore`, never commit, never share.
+- **`.libwa/` (and `*.db`) is sensitive** — it authenticates your account. Add to `.gitignore`, never commit, never share. SQLite may also leave `-wal` / `-shm` files next to the database; they belong to the same secret.
 - **Rotating devices**: WhatsApp may revoke sessions remotely → next connect yields `DisconnectReason.LoggedOut` → `disconnect` event, no retry. Delete the slot and re-pair.
 - **Deleting the slot** (`rm .libwa/default.json` or `sessionStore.clear(id)`) forces a fresh login.
-- **Corrupt slot**: the library fails with `ValidationError` telling you to clear it — fix by deleting the file, not by hand-editing JSON.
+- **Corrupt slot**: the library fails with `ValidationError` telling you to clear it — fix by deleting the file/row, not by hand-editing JSON.
+- **Shutdown**: `await client.destroy()` first (it stops writing), then `store.close()` if you are using `SqliteSessionStore`.
 
 ## Related
 

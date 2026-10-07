@@ -97,6 +97,7 @@ Cada página documenta assinaturas, parâmetros, valores de retorno, erros e exe
 | `Logger`, `nullLogger`, `createConsoleLogger` | interface / values | [Logger](/pt-BR/reference/logger) |
 | `Session`, `SessionStore` | interfaces | [Sessões](/pt-BR/reference/sessions#session) |
 | `FileSessionStore`, `FileSessionStoreOptions` | class / interface | [Sessões](/pt-BR/reference/sessions#filesessionstore) |
+| `SqliteSessionStore`, `SqliteSessionStoreOptions` | class / interface | [Sessões](/pt-BR/reference/sessions#sqlitesessionstore) |
 | `MemorySessionStore` | class | [Sessões](/pt-BR/reference/sessions#memorysessionstore) |
 | `TypedEventEmitter` **não exportado** | class | [TypedEventEmitter](/pt-BR/reference/typed-event-emitter) (interno) |
 
@@ -129,5 +130,5 @@ Relevante para colaboradores; documentado nas páginas acima com <ApiBadge kind=
 | `runMiddlewareChain` | `src/middleware/compose.ts` | [Middleware](/pt-BR/reference/middleware#runmiddlewarechain) |
 | `normalizeReplyContent`, `NormalizedPayload` | `src/messaging/payload.ts` | [Mensageria](/pt-BR/reference/messaging#normalizereplycontent) |
 | `TypedEventEmitter` e seus tipos | `src/events/TypedEventEmitter.ts` | [TypedEventEmitter](/pt-BR/reference/typed-event-emitter) |
-| `assertSafeSessionId` | `src/auth/FileSessionStore.ts` | [Sessões](/pt-BR/reference/sessions#assertsafesessionid) |
+| `assertSafeSessionId` | `src/auth/SessionStore.ts` | [Sessões](/pt-BR/reference/sessions#assertsafesessionid) |
 | Módulos do adaptador Baileys | `src/backend/baileys/*` | [Guia de backends](/pt-BR/guide/backends#baileys-adapter-internals) |

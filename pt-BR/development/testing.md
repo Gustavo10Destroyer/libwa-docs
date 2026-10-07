@@ -9,7 +9,7 @@ Como o `libwa` é testado: estratégia, helpers, mapa das suites e o que cada ca
 | executor | vitest 3 (`npm test` = `vitest run`) |
 | local | `tests/**/*.test.ts`, ambiente node |
 | config | `vitest.config.ts` — cobertura exclui apenas `src/index.ts` |
-| totais | **16 arquivos, 324 testes** |
+| totais | **17 arquivos, 349 testes** |
 
 ## Estratégia: testes de contrato, não integração com o provedor {#strategy-contract-tests-not-provider-integration}
 
@@ -68,6 +68,7 @@ Builders para cada evento do backend: `messageEvent`, `reactionEvent`, `messageU
 | `baileys-mapper.test.ts` | 57 | todo tipo de conteúdo, wrappers (ephemeral/view-once/edit/device-sent), timestamps, normalização de JID, referências, menções, filtragem de stubs, captura de pares de id LID ↔ telefone, usernames de participantes, conteúdo que viaja junto com a distribuição de sender-key |
 | `messaging.test.ts` | 21 | resolução do alvo de envio, citações, menções, react/edit/delete, erros de capacidade, reconstrução da entidade a partir de `BackendSentMessage` |
 | `interactions.test.ts` | 25 | guards/estreitamento, classificação da factory, campos de subclasse, `interaction.member` (papéis, entre esquemas, metadados ausentes), `reply()` |
+| `sqlite-session-store.test.ts` | 25 | contrato da store SQLite (`load`/`save`/`clear`), múltiplos slots em arquivo compartilhado, escritores sequenciais + concorrentes, modo `:memory:`, WAL + `PRAGMA user_version`, contenção de lock com busy-timeout, ciclo de vida do `close()`, formatos de linha corrompida, validação de id e de payload, interop com `resolveDriver`, exportação raiz |
 | `commands.test.ts` | 18 | validação de nome/alias, duplicatas, atomicidade da definição inteira, parsing do prefixo mais longo, case folding |
 | `baileys-auth.test.ts` | 13 | idas e vindas `AuthenticationState` ⇄ store, coalescing, buffer JSON, revitalização da chave app-state |
 | `payload.test.ts` | 10 | `normalizeReplyContent`: vazio/ambíguo/legenda/mídia, fusão de menções |
@@ -90,7 +91,7 @@ Builders para cada evento do backend: `messageEvent`, `reactionEvent`, `messageU
 - **Buscas de identidade**: formatos aceitos por `client.users.fetch`, erros de capacidade ausente, cadeias de resolução de lid (pair → capability → undefined), memória de push-name fluindo para payloads só-id e enriquecimento de perfil (padrões/tipos, normalização, caminhos não suportados/propagação).
 - **Contexto do grupo**: os metadados são resolvidos via `client.groups.ensure` — um cache de ≤60s com um único fetch em andamento por grupo; falhas aguardam (backoff) pela janela e disparam sobre o estado em cache + um aviso; eventos de membership/update fazem patch no cache antes de a interação ser construída; `interaction.member` / `Group.member` respondem papéis em ambos os esquemas de id.
 - **Fidelidade de mapeamento**: fixtures do provedor → formatos exatos de `MessageContent` (a maior suite — o mapper é a superfície de maior risco).
-- **Semântica da store**: escritas atômicas, serialização por slot, `null` para ausente, `ERR_SESSION_ID` / `ERR_SESSION_CORRUPT`.
+- **Semântica da store**: escritas atômicas, serialização por slot, `null` para ausente, `ERR_SESSION_ID` / `ERR_SESSION_CORRUPT`; paridade com SQLite — um banco de dados único para todos os slots, durabilidade WAL, lock com busy-timeout, rejeição de handle fechado, detecção de linha corrompida, carregamento lazy do driver.
 - **Sem vazamentos**: `check:exports` (estágio separado) prova que a superfície continua livre de provedor.
 
 ## Convenções dentro dos testes {#conventions-inside-tests}

@@ -16,7 +16,7 @@ O próprio libwa é TypeScript/JavaScript puro — nenhum framework é necessár
 npm install libwa
 ```
 
-Isso traz o provedor Baileys (`@whiskeysockets/baileys`) como única dependência de runtime do libwa.
+Isso traz o provedor Baileys (`@whiskeysockets/baileys`) mais o `better-sqlite3` — o segundo só é carregado se você construir um `SqliteSessionStore`, então um bot comum nunca toca no binding nativo.
 
 ::: tip Trabalhando neste repositório?
 O nome do pacote é `libwa`. Dentro do próprio repositório da biblioteca, `tsconfig.json` mapeia o especificador `libwa` para `src/index.ts` via `paths`, de modo que exemplos e código interno possam importar a superfície pública durante o desenvolvimento. Veja [Convenções de código](/pt-BR/development/conventions).
@@ -151,6 +151,14 @@ No primeiro login, o [`FileSessionStore`](/pt-BR/reference/sessions#filesessions
 ```
 
 Adicione `.libwa/` ao `.gitignore` (o repositório já faz isso). Apagar a pasta força um novo pareamento. Nunca a compartilhe: ela *é* a sessão logada.
+
+Em produção, troque a store de sistema de arquivos pela [`SqliteSessionStore`](/pt-BR/reference/sessions#sqlitesessionstore) — um único arquivo de banco resistente a crashes guarda todos os slots:
+
+```ts
+new Client({ sessionStore: new SqliteSessionStore({ filename: "var/bot.db" }) });
+```
+
+Seja qual for a store escolhida, desligá-la é com você: chame `store.close()` você mesmo no encerramento se ela mantém um handle.
 
 ## Sugestão de estrutura do projeto {#project-layout-suggestion}
 

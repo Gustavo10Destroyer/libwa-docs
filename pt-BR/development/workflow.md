@@ -21,7 +21,7 @@ Comandos diários para desenvolver `libwa` — desde loops rápidos até o gate 
 
 ```bash
 npm run verify
-# typecheck ✓  tests 324 ✓  lint ✓  build ✓  check:exports ✓
+# typecheck ✓  tests 349 ✓  lint ✓  build ✓  check:exports ✓
 ```
 
 ## Loops sugeridos {#suggested-loops}
@@ -59,7 +59,7 @@ npm run build               # bundle de produção
 
 ```mermaid
 flowchart LR
-    A["typecheck<br/>tsc estrito, sem emit"] --> B["test<br/>vitest 324"]
+    A["typecheck<br/>tsc estrito, sem emit"] --> B["test<br/>vitest 349"]
     B --> C["lint<br/>biome"]
     C --> D["build<br/>tsc → dist/"]
     D --> E["check:exports<br/>percorre o grafo de vazamento"]

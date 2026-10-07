@@ -28,7 +28,7 @@ features:
     details: Prefixos, aliases, args, guards groupOnly/dmOnly e um pipeline de middleware ordenado para rate limiting, filtragem e permissões.
   - icon: 🗂️
     title: Persistência de sessão
-    details: Blobs de sessão opacos através do SessionStore — stores de sistema de arquivos e memória inclusos, Redis/SQL plugáveis. Bots com múltiplas contas usam uma store com session ids distintos.
+    details: Blobs de sessão opacos através do SessionStore — stores de sistema de arquivos, SQLite e memória inclusos, Redis plugável. Bots com múltiplas contas usam uma store com session ids distintos.
   - icon: 🛡️
     title: Rigoroso por padrão
     details: Construído com TypeScript estrito, exactOptionalPropertyTypes e zero any. Hierarquia de erros estável com códigos legíveis por máquina e eventos tipados em todo lugar.

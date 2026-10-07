@@ -15,7 +15,7 @@ libwa/
 │   ├── messaging/       MessageService + payload normalization
 │   ├── groups/          GroupService
 │   ├── middleware/      compose.ts (chain runner)
-│   ├── auth/            SessionStore contract + file/memory stores
+│   ├── auth/            SessionStore contract + file/sqlite/memory stores + driver seam
 │   ├── backend/         contract (Backend.ts, events.ts), createDefaultBackend
 │   │   └── baileys/     ← ONLY dir allowed to import the provider
 │   ├── errors/          WhatsAppError hierarchy
@@ -39,8 +39,8 @@ libwa/
 
 | Item | Value |
 | --- | --- |
-| package name | `libwa` (v0.3.0, MIT, ESM, Node ≥ 20.0.0) |
-| runtime dependency | `@whiskeysockets/baileys` only |
+| package name | `libwa` (v0.4.0, MIT, ESM, Node ≥ 20.0.0) |
+| runtime dependencies | `@whiskeysockets/baileys` + `better-sqlite3` (loaded lazily, only by `SqliteSessionStore`) |
 | public surface | `exports`: `.` → `dist/index.d.ts` + `dist/index.js` (declared under `types`, `import`, `require` and `default`), plus `./package.json` |
 | published files | `dist`, `docs`, `LICENSE` (README auto-included) |
 | test runner | vitest (`tests/**/*.test.ts`, node environment) |
@@ -50,7 +50,7 @@ libwa/
 
 ## Source inventory
 
-7,665 lines of `src` across 48 TypeScript files, grouped by layer:
+8,071 lines of `src` across 50 TypeScript files, grouped by layer:
 
 | Area | Files | Role |
 | --- | --- | --- |
@@ -59,11 +59,11 @@ libwa/
 | entities | 5 | domain objects + factory |
 | backend | 9 | contract (3) + Baileys adapter (6, incl. `index.ts` barrel) |
 | services | 7 | messaging (3), commands (2), groups (1), users (1) |
-| infrastructure | 13 | auth (3), core (5), events (2), middleware (1), errors (1), logging (1) |
+| infrastructure | 15 | auth (5: contract, file, sqlite, memory, driver seam), core (5), events (2), middleware (1), errors (1), logging (1) |
 
 ## Tests
 
-16 suites, **324 tests**, 6,003 lines (5,609 of tests + 394 of helpers):
+17 suites, **349 tests**, 6,378 lines (5,984 of tests + 394 of helpers):
 
 | Suite | Focus |
 | --- | --- |
@@ -71,6 +71,7 @@ libwa/
 | `client.test.ts` (36) | lifecycle, dispatch, group metadata ensure (TTL/dedupe/backoff), reconnection, login/destroy/logout |
 | `users.test.ts` (30) | `client.users` id-pair recording, resolution, fetch, name memory, profile enrichment |
 | `interactions.test.ts` (25) | guards, factory, subclasses, `interaction.member` |
+| `sqlite-session-store.test.ts` (25) | SQLite store: contract round-trip, WAL schema, busy-timeout locking, close lifecycle, driver interop |
 | `messaging.test.ts` (21) | send/react/edit/delete paths |
 | `commands.test.ts` (18) | registration + parsing |
 | `groups.test.ts` (21) | GroupService ops, ensure cache, membership patches + `Group.member` lookups |

@@ -2,28 +2,49 @@
 
 Todas as mudanças notáveis no pacote **libwa** (este site documenta `libwa`, não o repositório de docs). As versões seguem [Versionamento Semântico](https://semver.org): bumps menores podem conter mudanças incompatíveis enquanto a versão principal for `0` — cada entrada as detalha.
 
-## Unreleased {#unreleased}
+## 0.4.0 (2026-10-07) {#_0-4-0-2026-10-07}
 
-Trabalho na branch principal do `libwa` após a 0.3.0 — ainda não publicado.
+Trabalho na branch principal do `libwa` desde a 0.3.0, agora publicado.
 
 ### Added {#added}
 
+- **`SqliteSessionStore`** — o store para rodar um bot em produção. Um único arquivo de banco SQLite guarda todos os slots de sessão, então as credenciais sobrevivem a reinícios, vários processos do bot podem compartilhar um deployment e mover o bot significa copiar um arquivo em vez de uma árvore de diretórios.
+  - Journal WAL + `synchronous = FULL` para segurança contra crashes, `busy_timeout` (padrão 5000 ms) para que um segundo escritor bloqueie em vez de falhar com `SQLITE_BUSY`, e um upsert transacional `INSERT … ON CONFLICT` por save.
+  - Versão do schema em `PRAGMA user_version`: um banco gravado por uma libwa mais nova é recusado em vez de ser aberto com um schema que esta build não entende.
+  - Ids validados exatamente como no `FileSessionStore`; uma linha com os tipos de coluna errados → `ERR_SESSION_CORRUPT`; toda falha após `close()` → `ERR_SESSION_STORE`.
+  - Apoiado por `better-sqlite3` (uma dependência normal), carregado de forma lazy através de `createRequire` — `import "libwa"` nunca toca no binding nativo. Uma instalação feita com `--ignore-scripts` falha com um `ERR_SESSION_STORE` acionável, não com um crash de carregamento.
+  - Opções: `filename` (padrão `libwa-sessions.db`, suporte a URIs `":memory:"` e `file:`, diretórios pai criados) e `busyTimeoutMs`.
+- **`SessionStore.close?()`** — um hook opcional de encerramento no contrato do store. A libwa nunca o chama: quem criou o store é dono do handle e chama `close()` no shutdown, e toda operação em um `SqliteSessionStore` fechado rejeita com `ERR_SESSION_STORE` em vez de reabrir o arquivo por trás das suas costas.
 - **`Client.isSelf(id)`** — verificação síncrona "esta é a conta do bot?", que responde sob qualquer esquema de id (pares registrados incluídos).
+- **`Interaction.reply(content, options?)` e `Message.reply(content, options?)`** — respostas cientes de interação que citam a mensagem sendo respondida, com a precedência de `replyToMessageId` / `quote` detalhada.
 - **`ERR_SESSION_UNREADABLE`** — um arquivo de sessão que existe mas não pode ser lido (permissões, I/O) agora levanta `ValidationError` com este código e a causa original, em vez de parecer "sem sessão".
+- **Script `prepare`** — `npm install` a partir de um checkout de git agora executa `npm run build`, de modo que um checkout fica utilizável sem uma etapa manual de build.
 - **Workflow de CI** — `.github/workflows/ci.yml`: Node 20, `npm ci`, `npm run verify`, em pushes para `main` e em pull requests.
 
 ### Changed {#changed}
 
-- **Breaking:** engines elevadas de `>=18.17` para `>=20.0.0` — o Baileys 7.0.0-rc14 exige o mesmo piso.
+- **Breaking:** engines elevadas de `>=18.17` para `>=20.0.0` — o provedor Baileys incluso declara o mesmo piso.
 - **`npm run build` limpa `dist/` primeiro** via `scripts/clean-dist.mjs` (`node scripts/clean-dist.mjs && tsc -p tsconfig.build.json`), para que arquivos renomeados ou removidos não sobrevivam como output obsoleto.
-- **Caches de entidade limitados** — `EntityFactory` limita chats (LRU 512), metadados de grupo (512), pares de id (4096) e nomes de exibição (4096) em vez de crescer sem limite.
-- **Validação de registro de comando pela definição inteira** — `commands.register()` valida o nome, os aliases e todo conflito antes de confirmar qualquer coisa, de modo que um registro rejeitado deixa o registro exatamente como estava; `parse()` agora escolhe o prefixo **mais longo** que casa (a ordem do array só desempata).
+- **`@whiskeysockets/baileys` fixado em `7.0.0-rc14`** em vez de um range com caret, para que um prerelease flutuante não possa derivar por baixo de uma versão publicada.
 - **Ordenação determinística de listeners** — listeners fazem dispatch na ordem de registro sobre um snapshot, com listeners `once` consumidos antes do dispatch, de forma que emissões reentrantes não podem reordenar handlers.
-- **`Interaction.reply()` / `Message.reply()` aceitam um `SendOptions` opcional** depois do conteúdo (citação, menções, …).
+- **Validação de registro de comando pela definição inteira** — `commands.register()` valida o nome, os aliases e todo conflito antes de confirmar qualquer coisa, de modo que um registro rejeitado deixa o registro exatamente como estava; `parse()` agora escolhe o prefixo **mais longo** que casa (a ordem do array só desempata).
+- **Proteção contra corrida em `login()` e `logout()`** — uma trava `connecting` faz chamadas concorrentes de `login()` compartilharem uma única tentativa, uma trava `loggingOut` impede que um logout que disputou com uma desconexão acabe reconectando, um timer de reconexão pendente é cancelado quando um login se concretiza, e o backend é construído uma vez por conexão em vez de uma vez por tentativa.
+- **Guard de socket obsoleto no backend Baileys** — cada `makeWASocket()` incrementa uma geração de conexão e todo handler, caminho de desconexão e timeout de handshake desiste quando pertence a uma geração obsoleta, de forma que uma reconexão disputada por uma desconexão não consegue mais ressuscitar um socket morto.
+- **Requisições de código de pareamento não são mais one-shot** por arquivo de sessão: `needs-pairing` consulta as credenciais em vez de uma flag travada, uma requisição com falha rearma a próxima tentativa e respostas que uma tentativa mais nova superou são descartadas.
+- **Conteúdo em string resolve menções** — `send(chat, "@1234…", { mentions })` agora marca o alvo da mesma forma que um payload em objeto.
+- **Caches de entidade limitados** — `EntityFactory` limita chats (LRU 512), metadados de grupo (512), pares de id (4096) e nomes de exibição (4096) em vez de crescer sem limite; `logout()` e `destroy()` os reiniciam para que a próxima conta nunca responda a partir da anterior.
+- **`GroupUpdateInteraction.changes` é um diff de verdade** — listas `added`, `removed` e só-de-papéis calculadas a partir dos conjuntos de participantes antes/depois, com um campo limpo chegando como `undefined` para que os consumidores distingam "limpo" de "intocado".
+- **`FileSessionStore` mapeia apenas `ENOENT` para "sem sessão"** — um arquivo corrompido superficia `ERR_SESSION_CORRUPT` em vez de ser descartado silenciosamente, e os arquivos temporários são nomeados com `randomUUID()` para que dois stores em um mesmo processo nunca compartilhem um caminho.
+- **`BaileysAuth.flush()` esvazia a cadeia de escrita** até ela realmente estar vazia, em vez de resolver no primeiro lote liquidado.
+- **`requestPairingCode()` sem `auth.pairingPhoneNumber`** agora lança `UnsupportedOperationError` em vez de simplesmente não fazer nada em silêncio.
 
 ### Fixed {#fixed}
 
 - **Middleware rejeitado aparece no evento `error`** — um `next()` destacado que rejeita é reportado (contexto `middleware`) em vez de escapar como uma rejeição não tratada.
+- **`login()` concorrente não inicia mais conexões sobrepostas**, e um `logout()` que disputa com um `connect()` em andamento não deixa mais a promise de login pendurada para sempre.
+- **`send(chat, "text", { mentions })` para de descartar menções.**
+- **Eventos de atualização de grupo reportam diffs, não snapshots** — as listas de participantes não afirmam mais que membros inalterados foram adicionados ou removidos, e limpar uma descrição agora produz um evento `groupUpdate`.
+- **O exemplo JSDoc de `UserService` compila**; chamadas condicionadas a capacidade lançam o `UnsupportedOperationError` documentado em vez de um erro cru.
 
 ## 0.3.0 (2026-10-01) {#_0-3-0-2026-10-01}
 
@@ -79,7 +100,7 @@ Trabalho na branch principal do `libwa` após a 0.3.0 — ainda não publicado.
 
 ### Fixed {#fixed-1}
 
-- O mapper agora superficia o conteúdo que viaja junto com a distribuição de sender-key — a primeira mensagem em um grupo (que carrega a distribuição junto com seu texto) chega vazia.
+- O mapper agora superficia o conteúdo que viaja junto com a distribuição de sender-key — a primeira mensagem em um grupo (que carrega a distribuição junto com seu texto) não chega mais vazia.
 - Mudanças de atualização de grupo (name/description/announceOnly/locked) são aplicadas aos metadados do grupo em cache antes de a interação ser construída.
 
 ## 0.1.0 (2026-09-27) {#_0-1-0-2026-09-27}

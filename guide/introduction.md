@@ -26,7 +26,7 @@ That snippet is a complete bot: it connects to WhatsApp (showing a QR code to sc
 | Message content | Dozens of half-present optional fields | A discriminated `MessageContent` union, normalized every time |
 | Commands | Roll your own parser | `CommandRegistry` with prefixes, aliases, args, guards |
 | Errors | Whatever the provider throws | Stable `WhatsAppError` hierarchy with `.code` |
-| Sessions | Ad-hoc file handling inside the provider | `SessionStore` abstraction (file/memory/bring-your-own) |
+| Sessions | Ad-hoc file handling inside the provider | `SessionStore` abstraction (file/SQLite/memory/bring-your-own) |
 | Reconnection | Often provider-owned or manual | Client-owned policy with exponential backoff |
 | Multi-account | Unclear | `sessionId` slots over one store |
 
@@ -54,7 +54,7 @@ client.on("interactionCreate", (i) => {
 
 **[Backend](/reference/backend)** (`WhatsAppBackend`) — the provider adapter interface. The bundled default is [Baileys](https://github.com/WhiskeySockets/Baileys), but the core only ever talks to this contract. Optional capabilities (`react`, `editMessage`, …) surface as `UnsupportedOperationError` when a backend lacks them.
 
-**[SessionStore](/reference/sessions)** — persistence for login credentials. The core treats session data as an opaque `Uint8Array`; only the owning backend interprets it.
+**[SessionStore](/reference/sessions)** — persistence for login credentials: [`FileSessionStore`](/reference/sessions#filesessionstore) (default), [`SqliteSessionStore`](/reference/sessions#sqlitesessionstore) (production — one WAL-mode database for every slot), `MemorySessionStore` (tests) or your own. The core treats session data as an opaque `Uint8Array`; only the owning backend interprets it.
 
 **[Middleware](/reference/middleware)** — ordered functions that gate dispatch: `client.use((interaction, next) => …)`. Skipping `next()` stops the interaction from reaching commands and listeners.
 

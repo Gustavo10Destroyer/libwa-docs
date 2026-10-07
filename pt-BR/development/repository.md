@@ -15,7 +15,7 @@ libwa/
 │   ├── messaging/       MessageService + normalização de payload
 │   ├── groups/          GroupService
 │   ├── middleware/      compose.ts (executor da cadeia)
-│   ├── auth/            contrato SessionStore + stores arquivo/memória
+│   ├── auth/            contrato SessionStore + stores arquivo/sqlite/memória + costura do driver
 │   ├── backend/         contrato (Backend.ts, events.ts), createDefaultBackend
 │   │   └── baileys/     ← ÚNICO dir autorizado a importar o provedor
 │   ├── errors/          hierarquia WhatsAppError
@@ -39,8 +39,8 @@ libwa/
 
 | Item | Valor |
 | --- | --- |
-| nome do pacote | `libwa` (v0.3.0, MIT, ESM, Node ≥ 20.0.0) |
-| dependência de runtime | apenas `@whiskeysockets/baileys` |
+| nome do pacote | `libwa` (v0.4.0, MIT, ESM, Node ≥ 20.0.0) |
+| dependências de runtime | `@whiskeysockets/baileys` + `better-sqlite3` (carregado de forma lazy, apenas por `SqliteSessionStore`) |
 | superfície pública | `exports`: `.` → `dist/index.d.ts` + `dist/index.js` (declarado sob `types`, `import`, `require` e `default`), além de `./package.json` |
 | arquivos publicados | `dist`, `docs`, `LICENSE` (README incluído automaticamente) |
 | executor de testes | vitest (`tests/**/*.test.ts`, ambiente node) |
@@ -50,7 +50,7 @@ libwa/
 
 ## Inventário do código-fonte {#source-inventory}
 
-7,665 linhas de `src` em 48 arquivos TypeScript, agrupadas por camada:
+8,071 linhas de `src` em 50 arquivos TypeScript, agrupadas por camada:
 
 | Área | Arquivos | Papel |
 | --- | --- | --- |
@@ -59,11 +59,11 @@ libwa/
 | entities | 5 | objetos de domínio + factory |
 | backend | 9 | contrato (3) + adaptador Baileys (6, incl. barrel `index.ts`) |
 | services | 7 | messaging (3), commands (2), groups (1), users (1) |
-| infrastructure | 13 | auth (3), core (5), events (2), middleware (1), errors (1), logging (1) |
+| infrastructure | 15 | auth (5: contrato, arquivo, sqlite, memória, costura do driver), core (5), events (2), middleware (1), errors (1), logging (1) |
 
 ## Testes {#tests}
 
-16 suites, **324 testes**, 6,003 linhas (5,609 de testes + 394 de helpers):
+17 suites, **349 testes**, 6,378 linhas (5,984 de testes + 394 de helpers):
 
 | Suite | Foco |
 | --- | --- |
@@ -71,6 +71,7 @@ libwa/
 | `client.test.ts` (36) | ciclo de vida, dispatch, ensure de metadados de grupo (TTL/dedupe/backoff), reconexão, login/destroy/logout |
 | `users.test.ts` (30) | registro de pares de id em `client.users`, resolução, fetch, memória de nomes, enriquecimento de perfil |
 | `interactions.test.ts` (25) | guards, factory, subclasses, `interaction.member` |
+| `sqlite-session-store.test.ts` (25) | store SQLite: round-trip de contrato, schema WAL, lock com busy-timeout, ciclo de vida do close, interop com o driver |
 | `messaging.test.ts` (21) | caminhos de send/react/edit/delete |
 | `commands.test.ts` (18) | registro + parsing |
 | `groups.test.ts` (21) | operações do GroupService, cache do ensure, patches de membership + buscas em `Group.member` |

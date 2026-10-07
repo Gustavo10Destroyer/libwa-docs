@@ -26,7 +26,7 @@ Esse trecho é um bot completo: ele se conecta ao WhatsApp (mostrando um código
 | Conteúdo da mensagem | Dezenas de campos opcionais parcialmente presentes | Uma união discriminada `MessageContent`, normalizada sempre |
 | Comandos | Implemente seu próprio parser | `CommandRegistry` com prefixos, aliases, args e guards |
 | Erros | O que o provedor lançar | Hierarquia estável de `WhatsAppError` com `.code` |
-| Sessões | Tratamento de arquivos ad hoc dentro do provedor | Abstração `SessionStore` (arquivo/memória/traga a sua) |
+| Sessões | Tratamento de arquivos ad hoc dentro do provedor | Abstração `SessionStore` (arquivo/SQLite/memória/traga a sua) |
 | Reconexão | Geralmente controlada pelo provedor ou manual | Política de propriedade do cliente com backoff exponencial |
 | Multi-conta | Pouco claro | Slots de `sessionId` sobre um único store |
 
@@ -54,7 +54,7 @@ client.on("interactionCreate", (i) => {
 
 **[Backend](/pt-BR/reference/backend)** (`WhatsAppBackend`) — a interface do adaptador do provedor. O padrão incluso é o [Baileys](https://github.com/WhiskeySockets/Baileys), mas o núcleo só conversa com esse contrato. Capacidades opcionais (`react`, `editMessage`, …) aparecem como `UnsupportedOperationError` quando um backend não as possui.
 
-**[SessionStore](/pt-BR/reference/sessions)** — persistência para credenciais de login. O núcleo trata os dados da sessão como um `Uint8Array` opaco; apenas o backend dono o interpreta.
+**[SessionStore](/pt-BR/reference/sessions)** — persistência para credenciais de login: [`FileSessionStore`](/pt-BR/reference/sessions#filesessionstore) (padrão), [`SqliteSessionStore`](/pt-BR/reference/sessions#sqlitesessionstore) (produção — um único banco em modo WAL para todos os slots), `MemorySessionStore` (testes) ou o seu próprio. O núcleo trata os dados da sessão como um `Uint8Array` opaco; apenas o backend dono o interpreta.
 
 **[Middleware](/pt-BR/reference/middleware)** — funções ordenadas que controlam o dispatch: `client.use((interaction, next) => …)`. Pular `next()` impede que a interação chegue a comandos e listeners.
 

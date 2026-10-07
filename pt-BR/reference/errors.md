@@ -86,9 +86,10 @@ Emitem `ValidationError` com um `code` específico (sobrescrevendo `ERR_VALIDATI
 | `ERR_INVALID_USER_ID` | `UserService.fetch` (id não é um phone JID / dígitos puros / `…@lid`) |
 | `ERR_INVALID_PHONE` | `Client.requestPairingCode` |
 | `ERR_UNSUPPORTED` | não é um código de `ValidationError` — é o código padrão de `UnsupportedOperationError` (veja o [registro de códigos](#code-registry)) |
-| `ERR_SESSION_ID` | `assertSafeSessionId` (id de slot inválido) |
-| `ERR_SESSION_CORRUPT` | `FileSessionStore.load` (JSON inválido) |
+| `ERR_SESSION_ID` | `assertSafeSessionId` (id de slot inválido — stores de arquivo e SQLite) |
+| `ERR_SESSION_CORRUPT` | `FileSessionStore.load` (JSON inválido) / `SqliteSessionStore.load` (tipos de coluna errados) |
 | `ERR_SESSION_UNREADABLE` | `FileSessionStore.load` (arquivo existe mas não pode ser lido — não-ENOENT) |
+| `ERR_SESSION_STORE` | `SqliteSessionStore` (o banco não pode ser aberto/fechado/lido/escrito, uso após `close()`, opções inválidas, ou o binding nativo `better-sqlite3` falhou ao carregar) |
 | `ERR_ENTITY_CONSTRUCTION` | guard do construtor de `Chat` (ex.: `new Chat({kind:"group"})` — use o `group()` da factory em vez disso) |
 
 ## Assinaturas das subclasses {#subclass-signatures}

@@ -2,28 +2,49 @@
 
 All notable changes to the **libwa** package (this site documents `libwa`, not the docs repo). Versions follow [Semantic Versioning](https://semver.org): minor bumps may contain breaking changes while the major version is `0` — each entry spells them out.
 
-## Unreleased
+## 0.4.0 (2026-10-07)
 
-Work on `libwa`'s main branch after 0.3.0 — not yet published.
+Work on `libwa`'s main branch since 0.3.0, now released.
 
 ### Added
 
+- **`SqliteSessionStore`** — the store to run a bot on in production. One SQLite database file holds every session slot, so credentials survive restarts, several bot processes can share a deployment, and moving the bot means copying one file instead of a directory tree.
+  - WAL journal + `synchronous = FULL` for crash safety, `busy_timeout` (default 5000 ms) so a second writer blocks instead of failing with `SQLITE_BUSY`, and one transactional `INSERT … ON CONFLICT` upsert per save.
+  - Schema version in `PRAGMA user_version`: a database written by a newer libwa is refused rather than opened with a schema this build does not understand.
+  - Ids validated exactly like `FileSessionStore`; a row with the wrong column types → `ERR_SESSION_CORRUPT`; every failure after `close()` → `ERR_SESSION_STORE`.
+  - Backed by `better-sqlite3` (a regular dependency), loaded lazily through `createRequire` — `import "libwa"` never touches the native binding. An install done with `--ignore-scripts` fails with an actionable `ERR_SESSION_STORE`, not a load crash.
+  - Options: `filename` (default `libwa-sessions.db`, `":memory:"` and `file:` URIs supported, parent directories created) and `busyTimeoutMs`.
+- **`SessionStore.close?()`** — an optional teardown hook on the store contract. libwa never calls it: the store's creator owns the handle and calls `close()` on shutdown, and every operation on a closed `SqliteSessionStore` rejects with `ERR_SESSION_STORE` instead of reopening the file behind your back.
 - **`Client.isSelf(id)`** — synchronous "is this the bot account?" check that answers under either id scheme (recorded pairs included).
+- **`Interaction.reply(content, options?)` and `Message.reply(content, options?)`** — interaction-aware replies that quote the message being answered, with `replyToMessageId` / `quote` precedence spelled out.
 - **`ERR_SESSION_UNREADABLE`** — a session file that exists but cannot be read (permissions, I/O) now raises `ValidationError` with this code and the original cause, instead of looking like "no session".
+- **`prepare` script** — `npm install` from a git checkout now runs `npm run build`, so a checkout is usable without a manual build step.
 - **CI workflow** — `.github/workflows/ci.yml`: Node 20, `npm ci`, `npm run verify`, on pushes to `main` and on pull requests.
 
 ### Changed
 
-- **Breaking:** engines raised from `>=18.17` to `>=20.0.0` — Baileys 7.0.0-rc14 requires the same floor.
+- **Breaking:** engines raised from `>=18.17` to `>=20.0.0` — the bundled Baileys provider declares the same floor.
 - **`npm run build` clears `dist/` first** via `scripts/clean-dist.mjs` (`node scripts/clean-dist.mjs && tsc -p tsconfig.build.json`), so renamed or removed files cannot survive as stale output.
-- **Bounded entity caches** — `EntityFactory` caps chats (LRU 512), group metadata (512), id pairs (4096) and display names (4096) instead of growing without limit.
-- **Whole-definition command registration validation** — `commands.register()` validates the name, aliases and every conflict before committing anything, so a rejected registration leaves the registry exactly as it was; `parse()` now picks the **longest** matching prefix (array order only breaks ties).
+- **`@whiskeysockets/baileys` pinned to `7.0.0-rc14`** instead of a caret range, so a floating prerelease cannot drift underneath a released version.
 - **Deterministic listener ordering** — listeners dispatch in registration order over a snapshot, with `once` listeners consumed before dispatch, so re-entrant emissions cannot reorder handlers.
-- **`Interaction.reply()` / `Message.reply()` take an optional `SendOptions`** after the content (quote, mentions, …).
+- **Whole-definition command registration validation** — `commands.register()` validates the name, aliases and every conflict before committing anything, so a rejected registration leaves the registry exactly as it was; `parse()` now picks the **longest** matching prefix (array order only breaks ties).
+- **`login()` and `logout()` race-proofing** — a `connecting` latch makes concurrent `login()` calls share one attempt, a `loggingOut` latch stops a logout that raced a disconnect from reconnecting, a pending reconnect timer is cancelled when a login lands, and the backend is built once per connect instead of once per attempt.
+- **Stale-socket guard in the Baileys backend** — every `makeWASocket()` bumps a connect generation and every handler, disconnect path and handshake timeout bails when it belongs to a stale one, so a reconnect raced by a disconnect can no longer resurrect a dead socket.
+- **Pairing-code requests are no longer one-shot** per session file: `needs-pairing` consults the credentials instead of a latched flag, a failed request re-arms the next attempt, and replies that a newer attempt superseded are discarded.
+- **String content resolves mentions** — `send(chat, "@1234…", { mentions })` now tags the target the same way an object payload does.
+- **Bounded entity caches** — `EntityFactory` caps chats (LRU 512), group metadata (512), id pairs (4096) and display names (4096) instead of growing without limit; `logout()` and `destroy()` reset them so the next account never answers from the previous one.
+- **`GroupUpdateInteraction.changes` is a real diff** — `added`, `removed` and role-only lists computed from the before/after participant sets, with a cleared field arriving as `undefined` so consumers can tell "cleared" from "untouched".
+- **`FileSessionStore` maps only `ENOENT` to "no session"** — a corrupt file surfaces `ERR_SESSION_CORRUPT` instead of being silently discarded, and temp files are named with `randomUUID()` so two stores in one process never share a path.
+- **`BaileysAuth.flush()` drains the write chain** until it is actually empty instead of resolving on the first settled batch.
+- **`requestPairingCode()` without `auth.pairingPhoneNumber`** now throws `UnsupportedOperationError` instead of silently doing nothing.
 
 ### Fixed
 
 - **Rejected middleware surfaces on the `error` event** — a detached `next()` that rejects is reported (context `middleware`) instead of escaping as an unhandled rejection.
+- **Concurrent `login()` no longer starts overlapping connects**, and a `logout()` racing an in-flight `connect()` no longer leaves the login promise pending forever.
+- **`send(chat, "text", { mentions })` stops dropping mentions.**
+- **Group update events report diffs, not snapshots** — participant lists no longer claim that unchanged members were added or removed, and clearing a description now produces a `groupUpdate` event.
+- **`UserService`'s JSDoc example compiles**; capability-gated calls throw the documented `UnsupportedOperationError` rather than a raw error.
 
 ## 0.3.0 (2026-10-01)
 

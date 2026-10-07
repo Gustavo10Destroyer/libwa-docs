@@ -14,12 +14,14 @@ flowchart TD
     end
     subgraph Stores["Implementações"]
         FS["FileSessionStore<br/>.libwa/id.json · temp+rename"]
+        SQ["SqliteSessionStore<br/>um db WAL · upsert por slot"]
         MS["MemorySessionStore<br/>Map (testes)"]
         Custom["Seu store Redis/SQL"]
     end
     Auth --> Ser --> Coalesce
     Coalesce -->|"save(Session)"| SS
     SS --> FS
+    SS --> SQ
     SS --> MS
     SS --> Custom
     FS -.->|"load()"| Auth
@@ -39,6 +41,7 @@ interface SessionStore {
   load(id): Promise<Session | null>;
   save(session): Promise<void>;
   clear(id): Promise<void>;
+  close?(): Promise<void> | void; // opcional — teardown de responsabilidade do chamador
 }
 ```
 
@@ -48,6 +51,7 @@ Regras de design:
 2. **Slot = `sessionId`** — múltiplas contas compartilham um store (`sessionId: "alice"` / `"bob"`).
 3. **Ausente ≠ erro** — `load()` retorna `null`; um `clear()` de um slot ausente é um no-op.
 4. **Somente através do store fornecido** — um backend nunca abre arquivos nem lê env; `BackendConnectOptions.sessionStore` é o único canal.
+5. **O chamador é dono do teardown** — libwa nunca chama `close()`; uma store que segura um fd ou uma conexão o expõe, e o código que criou a store é quem o invoca.
 
 ## Persistência com Baileys {#baileys-persistence}
 
@@ -88,6 +92,19 @@ sequenceDiagram
 - JSON corrompido → `ValidationError` `ERR_SESSION_CORRUPT` (cause preservada);
 - arquivo existe mas não pode ser lido (`EACCES`, `EIO`, … — qualquer coisa menos `ENOENT`) → `ValidationError` `ERR_SESSION_UNREADABLE` (cause preservada): uma sessão armazenada nunca é confundida com "sem sessão".
 
+### SqliteSessionStore {#sqlitesessionstore}
+
+- um único arquivo de banco para todos os slots (`filename` padrão `libwa-sessions.db`), tabela `sessions(id, provider, data, updated_at) WITHOUT ROWID`;
+- **durável**: `journal_mode = WAL` + `synchronous = FULL`; ignorado para `":memory:"`;
+- **multiprocesso**: `busy_timeout = busyTimeoutMs` (padrão 5000 ms) para que um segundo escritor bloqueie em vez de levantar `SQLITE_BUSY`;
+- **serializado por save**: um único `INSERT … ON CONFLICT(id) DO UPDATE` — o SQLite serializa os escritores, então não existe janela de ler-modificar-escrever;
+- **ids seguros**: o mesmo `assertSafeSessionId` da store de arquivo → `ERR_SESSION_ID`;
+- **versão do schema** em `PRAGMA user_version` — abrir um banco gravado por um libwa mais novo falha com `ERR_SESSION_STORE` em vez de adivinhar colunas desconhecidas;
+- **handle fechado** → `ERR_SESSION_STORE` em toda chamada subsequente (`#assertOpen`), nunca um reopen silencioso;
+- tipos de coluna corrompidos → `ERR_SESSION_CORRUPT`; falha no carregamento do driver (binding `better-sqlite3` ausente) → `ERR_SESSION_STORE` com a instrução de reinstalar.
+
+O driver é carregado de forma lazy através do `createRequire`, então `import "libwa"` nunca toca no binding nativo — a construção de uma store é a única coisa que pode falhar por causa dele.
+
 ### MemorySessionStore {#memorysessionstore}
 
 `Map<string, Session>` — testes e processos descartáveis; sem validação de id (sem sistema de arquivos), sem persistência.
@@ -108,13 +125,18 @@ Qualquer implementação de três métodos funciona (veja o [esboço de Redis](/
 | `destroy()` | somente disconnect — **sessão preservada** para a próxima execução do processo |
 | `provider` incompatível no load | aviso + creds novas (os bytes antigos efetivamente abandonados) |
 
-Multi-conta: um único `FileSessionStore`, `sessionId`s distintos — cada um ganha um arquivo e uma conexão independentes.
+Multi-conta: um único store, `sessionId`s distintos — cada um ganha um slot e uma conexão independentes.
 
 ```ts
-const store = new FileSessionStore({ directory: "/var/lib/bots" });
-const alice = new Client({ sessionStore: store, sessionId: "alice" });
-const bob = new Client({ sessionStore: store, sessionId: "bob" });
+const file = new FileSessionStore({ directory: "/var/lib/bots" });
+const alice = new Client({ sessionStore: file, sessionId: "alice" });
+const bob = new Client({ sessionStore: file, sessionId: "bob" });
 // .libwa/alice.json · .libwa/bob.json
+
+const db = new SqliteSessionStore({ filename: "/var/lib/bots/sessions.db" });
+const carol = new Client({ sessionStore: db, sessionId: "carol" });
+const dave = new Client({ sessionStore: db, sessionId: "dave" });
+// sessions.db → duas linhas · close() é com você chamar no encerramento
 ```
 
 ## Por que não interpretar sessões no núcleo? {#why-not-parse-sessions-in-the-core}
