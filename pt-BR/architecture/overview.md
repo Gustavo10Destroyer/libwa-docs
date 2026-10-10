@@ -1,6 +1,6 @@
 # Visão geral da arquitetura {#architecture-overview}
 
-libwa é um núcleo pequeno com uma **fronteira rígida em torno do código do provedor**. Tudo acima da costura é livre de provedor; o único código autorizado a importar `@whiskeysockets/baileys` vive em `src/backend/baileys/`.
+libwa.js é um núcleo pequeno com uma **fronteira rígida em torno do código do provedor**. Tudo acima da costura é livre de provedor; o único código autorizado a importar `@whiskeysockets/baileys` vive em `src/backend/baileys/`.
 
 ```mermaid
 flowchart TD

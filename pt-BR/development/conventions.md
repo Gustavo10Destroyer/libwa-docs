@@ -19,7 +19,7 @@ A partir do `tsconfig.json` (todas ativadas):
 
 Adicionais:
 
-- `paths: { "libwa": ["./src/index.ts"] }` — os exemplos importam o nome real do pacote;
+- `paths: { "libwa.js": ["./src/index.ts"] }` — os exemplos importam o nome real do pacote;
 - separação de emit: a config base só faz typecheck (sem emit); `tsconfig.build.json` adiciona `rootDir: src` + `declaration`/`declarationMap` + `sourceMap`/`inlineSources` para `dist/`.
 
 ## Biome (`biome.json`) {#biome-biome-json}

@@ -1,9 +1,9 @@
 # Visão geral da API {#api-overview}
 
-Tudo o que o libwa publica vem de **um único módulo**: a raiz do pacote.
+Tudo o que o libwa.js publica vem de **um único módulo**: a raiz do pacote.
 
 ```ts
-import { Client, type Interaction } from "libwa";
+import { Client, type Interaction } from "libwa.js";
 ```
 
 Imports profundos não são suportados — não que sejam fisicamente impossíveis: o campo `exports` do `package.json` expõe apenas `.` (além de `./package.json`), então resolvers conscientes de exports rejeitam qualquer caminho profundo — enquanto ferramentas legadas com `moduleResolution: "node"` ainda conseguem alcançar `dist/` diretamente. `npm run check:exports` comprova que nenhum tipo de provedor vaza para a superfície (veja [Guarda da API pública](/pt-BR/development/public-api-guard)). A tabela abaixo é a lista completa de exports de `src/index.ts`.

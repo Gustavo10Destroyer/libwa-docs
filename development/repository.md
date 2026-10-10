@@ -1,9 +1,9 @@
 # Repository
 
-Layout of the `libwa` library repository — where everything lives and why.
+Layout of the `libwa.js` library repository — where everything lives and why.
 
 ```
-libwa/
+libwa.js/
 ├── src/                 library source (ESM, TypeScript)
 │   ├── index.ts         ← the ONLY public entry (package exports ".")
 │   ├── Client.ts        composition root, lifecycle, dispatch
@@ -22,7 +22,7 @@ libwa/
 │   ├── logging/         Logger contract + console/null loggers
 │   └── core/            ids, content union, DisconnectReason, LruMap, sequence
 ├── tests/               vitest suites + helpers (MockBackend, fixtures)
-├── examples/            typechecked consumer-style examples ("libwa" import)
+├── examples/            typechecked consumer-style examples ("libwa.js" import)
 ├── scripts/
 │   ├── check-exports.mjs   public API leak guard (runs in `verify`)
 │   └── clean-dist.mjs      wipes `dist/` before every build
@@ -39,14 +39,14 @@ libwa/
 
 | Item | Value |
 | --- | --- |
-| package name | `libwa` (v0.4.0, MIT, ESM, Node ≥ 20.0.0) |
+| package name | `libwa.js` (v0.4.0, MIT, ESM, Node ≥ 20.0.0) |
 | runtime dependencies | `@whiskeysockets/baileys` + `better-sqlite3` (loaded lazily, only by `SqliteSessionStore`) |
 | public surface | `exports`: `.` → `dist/index.d.ts` + `dist/index.js` (declared under `types`, `import`, `require` and `default`), plus `./package.json` |
 | published files | `dist`, `docs`, `LICENSE` (README auto-included) |
 | test runner | vitest (`tests/**/*.test.ts`, node environment) |
 | linter/formatter | biome |
 | build | `node scripts/clean-dist.mjs && tsc -p tsconfig.build.json` (clears `dist/`, then declarations + sourcemaps) |
-| import style | tests → `src/…` paths; examples → `"libwa"` (tsconfig paths → `src/index.ts`) |
+| import style | tests → `src/…` paths; examples → `"libwa.js"` (tsconfig paths → `src/index.ts`) |
 
 ## Source inventory
 
@@ -95,7 +95,7 @@ Helpers: `MockBackend` / `CapableMockBackend` (299 lines — the mandatory contr
 | `pairing-login.ts` | `WA_PHONE_NUMBER` pairing-code flow |
 | `middleware-filters.ts` | rate limit, chat deny-list, group-join welcome, error classes, `DisconnectReason` handling |
 
-All import `"libwa"` exactly like consumer code and are covered by `npm run typecheck`.
+All import `"libwa.js"` exactly like consumer code and are covered by `npm run typecheck`.
 
 ## Commands
 

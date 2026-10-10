@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: libwa
+  name: libwa.js
   text: Bots de WhatsApp como interações
   tagline: Uma biblioteca de bots de WhatsApp com TypeScript em primeiro lugar e orientada a interações — DX no estilo discord.js sobre um backend plugável.
   actions:
@@ -38,5 +38,5 @@ features:
 ---
 
 ::: tip Como este projeto foi feito
-Este projeto foi criado **inteiramente através de vibe coding**: o **ChatGPT** cuidou da orquestração e o **MiMo-V2.6-Flash** da implementação. É software beta — espere imperfeições e, por favor, [relate issues](https://github.com/Gustavo10Destroyer/libwa/issues) conforme as encontrar.
+Este projeto foi criado **inteiramente através de vibe coding**: o **ChatGPT** cuidou da orquestração e o **MiMo-V2.6-Flash** da implementação. É software beta — espere imperfeições e, por favor, [relate issues](https://github.com/Gustavo10Destroyer/libwa.js/issues) conforme as encontrar.
 :::

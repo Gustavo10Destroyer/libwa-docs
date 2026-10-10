@@ -321,7 +321,7 @@ Ambas carregam `messageId`, `reference` (o prompt, quando citado) e respondem co
 ## Exemplo completo detalhado {#full-worked-example}
 
 ```ts
-import { type Interaction, Client } from "libwa";
+import { type Interaction, Client } from "libwa.js";
 
 const client = new Client({ commands: { prefix: "!" } });
 

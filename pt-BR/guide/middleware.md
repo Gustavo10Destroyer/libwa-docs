@@ -1,6 +1,6 @@
 # Middleware {#middleware}
 
-Middlewares são funções ordenadas por que toda interação passa **antes** de os comandos serem executados e de os listeners `interactionCreate` rodarem. São o ponto de extensão do libwa para rate limiting, filtragem, logging, permissões e métricas.
+Middlewares são funções ordenadas por que toda interação passa **antes** de os comandos serem executados e de os listeners `interactionCreate` rodarem. São o ponto de extensão do libwa.js para rate limiting, filtragem, logging, permissões e métricas.
 
 ## O contrato {#the-contract}
 
@@ -14,7 +14,7 @@ type Middleware = (
 Registre com `client.use()` (encadeável):
 
 ```ts
-import { type Middleware, Client } from "libwa";
+import { type Middleware, Client } from "libwa.js";
 
 const logger: Middleware = async (interaction, next) => {
   const started = Date.now();
@@ -61,7 +61,7 @@ Os middlewares veem **todo** tipo de interação — mensagens, comandos, reaç�
 ### Rate limiting (por chat + autor) {#rate-limiting-per-chat-author}
 
 ```ts
-import { type Middleware, Client } from "libwa";
+import { type Middleware, Client } from "libwa.js";
 
 const lastSeen = new Map<string, number>();
 const WINDOW_MS = 2_000;

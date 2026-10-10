@@ -3,7 +3,7 @@
 <ApiBadge kind="type" /> The dispatch pipeline between factory-built interactions and command/listener execution.
 
 ```ts
-import type { Middleware } from "libwa";
+import type { Middleware } from "libwa.js";
 ```
 
 ## `Middleware`
@@ -28,7 +28,7 @@ Rules:
 4. Async middlewares are awaited; `await next()` keeps ordering guarantees.
 
 ```ts
-import { type Middleware, type CommandInteraction } from "libwa";
+import { type Middleware, type CommandInteraction } from "libwa.js";
 
 const rateLimit: Middleware = async (i, next) => {
   if (bucket.has(i.author?.id) && !i.isCommand()) return; // swallow

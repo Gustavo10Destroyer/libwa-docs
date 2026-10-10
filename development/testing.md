@@ -1,6 +1,6 @@
 # Testing
 
-How `libwa` is tested: strategy, helpers, suite map, and what each layer guarantees.
+How `libwa.js` is tested: strategy, helpers, suite map, and what each layer guarantees.
 
 ## Setup
 

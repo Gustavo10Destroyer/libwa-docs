@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 from urllib.parse import unquote, urlparse
 
 DIST = ".vitepress/dist"
-BASE = "/libwa-docs/"
+BASE = "/libwa.js-docs/"
 
 
 class Parser(HTMLParser):

@@ -1,9 +1,9 @@
 # Introdução {#introduction}
 
-**libwa** é uma biblioteca TypeScript para construir bots de WhatsApp. Ela esconde a complexidade do protocolo do WhatsApp atrás de uma abstração única e opinada: a **interação**. Em vez de lidar com payloads crus do provedor, seu bot recebe objetos tipados e responde a eles com uma API pequena e consistente.
+**libwa.js** é uma biblioteca TypeScript para construir bots de WhatsApp. Ela esconde a complexidade do protocolo do WhatsApp atrás de uma abstração única e opinada: a **interação**. Em vez de lidar com payloads crus do provedor, seu bot recebe objetos tipados e responde a eles com uma API pequena e consistente.
 
 ```ts
-import { Client } from "libwa";
+import { Client } from "libwa.js";
 
 const client = new Client();
 
@@ -18,9 +18,9 @@ await client.login();
 
 Esse trecho é um bot completo: ele se conecta ao WhatsApp (mostrando um código QR para escanear), recebe mensagens e as ecoa de volta.
 
-## O que torna o libwa diferente {#what-makes-libwa-different}
+## O que torna o libwa.js diferente {#what-makes-libwa-js-different}
 
-| Aspecto | Bibliotecas cruas do provedor | libwa |
+| Aspecto | Bibliotecas cruas do provedor | libwa.js |
 | --- | --- | --- |
 | Mensagens recebidas | Árvores de payload aninhadas e específicas do provedor | Uma família de classes `Interaction` com guards de estreitamento |
 | Conteúdo da mensagem | Dezenas de campos opcionais parcialmente presentes | Uma união discriminada `MessageContent`, normalizada sempre |
@@ -32,7 +32,7 @@ Esse trecho é um bot completo: ele se conecta ao WhatsApp (mostrando um código
 
 ## Conceitos centrais {#core-concepts}
 
-Tudo no libwa flui por algumas ideias. Você usará todas elas:
+Tudo no libwa.js flui por algumas ideias. Você usará todas elas:
 
 **[Client](/pt-BR/reference/client)** — o ponto de entrada. Controla o ciclo de vida da conexão, compõe os serviços (`client.messages`, `client.groups`, `client.commands`, `client.users`), converte eventos do backend em interações, executa middlewares e faz dispatch para seus listeners.
 
@@ -66,7 +66,7 @@ client.on("interactionCreate", (i) => {
 
 ```mermaid
 flowchart LR
-    subgraph Core["núcleo do libwa (sem provedor)"]
+    subgraph Core["núcleo do libwa.js (sem provedor)"]
         C[Client]
         F[InteractionFactory]
         M[Cadeia de middleware]
@@ -129,9 +129,9 @@ stateDiagram-v2
 | **Sessão** | Estado de login persistido: `{ id, provider, data, updatedAt }`. |
 | **Slot** | Um id de sessão dentro de um store compartilhado (`ClientOptions.sessionId`, padrão `"default"`). |
 | **`isFromMe`** | Verdadeiro quando a conta logada causou a interação. |
-| **JID** | Id no formato do provedor (`user@s.whatsapp.net`). O libwa passa ids como strings puras e normaliza os sufixos de dispositivo no backend. |
+| **JID** | Id no formato do provedor (`user@s.whatsapp.net`). O libwa.js passa ids como strings puras e normaliza os sufixos de dispositivo no backend. |
 
-## O que o libwa *não* faz {#what-libwa-does-not-do}
+## O que o libwa.js *não* faz {#what-libwa-js-does-not-do}
 
 - Não é um framework: sem carregador de comandos baseado em arquivos, sem plugins, sem dashboard. Traga sua própria estrutura sobre as primitivas.
 - Ele não expõe extras do provedor (anti-spam, uploads de stories, …) — qualquer coisa que o contrato `WhatsAppBackend` não modela exigiria seu próprio código de backend.

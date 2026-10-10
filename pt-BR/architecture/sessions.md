@@ -13,7 +13,7 @@ flowchart TD
         SS["Contrato SessionStore<br/>load · save · clear"]
     end
     subgraph Stores["Implementações"]
-        FS["FileSessionStore<br/>.libwa/id.json · temp+rename"]
+        FS["FileSessionStore<br/>.libwa.js/id.json · temp+rename"]
         SQ["SqliteSessionStore<br/>um db WAL · upsert por slot"]
         MS["MemorySessionStore<br/>Map (testes)"]
         Custom["Seu store Redis/SQL"]
@@ -51,7 +51,7 @@ Regras de design:
 2. **Slot = `sessionId`** — múltiplas contas compartilham um store (`sessionId: "alice"` / `"bob"`).
 3. **Ausente ≠ erro** — `load()` retorna `null`; um `clear()` de um slot ausente é um no-op.
 4. **Somente através do store fornecido** — um backend nunca abre arquivos nem lê env; `BackendConnectOptions.sessionStore` é o único canal.
-5. **O chamador é dono do teardown** — libwa nunca chama `close()`; uma store que segura um fd ou uma conexão o expõe, e o código que criou a store é quem o invoca.
+5. **O chamador é dono do teardown** — libwa.js nunca chama `close()`; uma store que segura um fd ou uma conexão o expõe, e o código que criou a store é quem o invoca.
 
 ## Persistência com Baileys {#baileys-persistence}
 
@@ -84,7 +84,7 @@ sequenceDiagram
 
 ### FileSessionStore (padrão) {#filesessionstore-default}
 
-- caminho `<directory>/<id>.json` (`directory` padrão `.libwa`);
+- caminho `<directory>/<id>.json` (`directory` padrão `.libwa.js`);
 - payload `{ provider, data: base64, updatedAt }`;
 - **atômico**: grava `<file>.<writerId>.tmp` → `rename()` (`writerId` = um `randomUUID()` por instância de store, então stores concorrentes nunca compartilham o mesmo arquivo temporário);
 - **serializado por slot**: fila interna de promises por id;
@@ -94,16 +94,16 @@ sequenceDiagram
 
 ### SqliteSessionStore {#sqlitesessionstore}
 
-- um único arquivo de banco para todos os slots (`filename` padrão `libwa-sessions.db`), tabela `sessions(id, provider, data, updated_at) WITHOUT ROWID`;
+- um único arquivo de banco para todos os slots (`filename` padrão `libwa.js-sessions.db`), tabela `sessions(id, provider, data, updated_at) WITHOUT ROWID`;
 - **durável**: `journal_mode = WAL` + `synchronous = FULL`; ignorado para `":memory:"`;
 - **multiprocesso**: `busy_timeout = busyTimeoutMs` (padrão 5000 ms) para que um segundo escritor bloqueie em vez de levantar `SQLITE_BUSY`;
 - **serializado por save**: um único `INSERT … ON CONFLICT(id) DO UPDATE` — o SQLite serializa os escritores, então não existe janela de ler-modificar-escrever;
 - **ids seguros**: o mesmo `assertSafeSessionId` da store de arquivo → `ERR_SESSION_ID`;
-- **versão do schema** em `PRAGMA user_version` — abrir um banco gravado por um libwa mais novo falha com `ERR_SESSION_STORE` em vez de adivinhar colunas desconhecidas;
+- **versão do schema** em `PRAGMA user_version` — abrir um banco gravado por um libwa.js mais novo falha com `ERR_SESSION_STORE` em vez de adivinhar colunas desconhecidas;
 - **handle fechado** → `ERR_SESSION_STORE` em toda chamada subsequente (`#assertOpen`), nunca um reopen silencioso;
 - tipos de coluna corrompidos → `ERR_SESSION_CORRUPT`; falha no carregamento do driver (binding `better-sqlite3` ausente) → `ERR_SESSION_STORE` com a instrução de reinstalar.
 
-O driver é carregado de forma lazy através do `createRequire`, então `import "libwa"` nunca toca no binding nativo — a construção de uma store é a única coisa que pode falhar por causa dele.
+O driver é carregado de forma lazy através do `createRequire`, então `import "libwa.js"` nunca toca no binding nativo — a construção de uma store é a única coisa que pode falhar por causa dele.
 
 ### MemorySessionStore {#memorysessionstore}
 
@@ -131,7 +131,7 @@ Multi-conta: um único store, `sessionId`s distintos — cada um ganha um slot e
 const file = new FileSessionStore({ directory: "/var/lib/bots" });
 const alice = new Client({ sessionStore: file, sessionId: "alice" });
 const bob = new Client({ sessionStore: file, sessionId: "bob" });
-// .libwa/alice.json · .libwa/bob.json
+// .libwa.js/alice.json · .libwa.js/bob.json
 
 const db = new SqliteSessionStore({ filename: "/var/lib/bots/sessions.db" });
 const carol = new Client({ sessionStore: db, sessionId: "carol" });

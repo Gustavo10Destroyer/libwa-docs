@@ -5,7 +5,7 @@ The client exposes a small, closed, fully-typed event surface via `client.on(...
 ## The event map
 
 ```ts
-import type { ClientEvents } from "libwa";
+import type { ClientEvents } from "libwa.js";
 
 type ClientEvents = {
   ready: [client: Client];

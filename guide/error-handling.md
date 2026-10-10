@@ -1,6 +1,6 @@
 # Error handling
 
-libwa guarantees that **every error it raises extends `WhatsAppError`** with a stable machine-readable `code`. Provider-specific error classes never reach application code.
+libwa.js guarantees that **every error it raises extends `WhatsAppError`** with a stable machine-readable `code`. Provider-specific error classes never reach application code.
 
 ## The hierarchy
 
@@ -45,7 +45,7 @@ import {
   BackendError,
   UnsupportedOperationError,
   ValidationError,
-} from "libwa";
+} from "libwa.js";
 ```
 
 ## Anatomy
@@ -143,7 +143,7 @@ flowchart TD
 client.on("error", (error) => {
   if (error instanceof PermissionError) return warnUser();
   if (error instanceof MessageError) return retryLater();
-  logger.error({ err: error }, "unhandled libwa error");
+  logger.error({ err: error }, "unhandled libwa.js error");
 });
 ```
 
@@ -213,7 +213,7 @@ Master list of `ValidationError` codes:
 Connection loss is **not** an `error` event — it arrives on `disconnect` with a [`DisconnectReason`](/reference/disconnect-reason):
 
 ```ts
-import { DisconnectReason, FATAL_DISCONNECT_REASONS } from "libwa";
+import { DisconnectReason, FATAL_DISCONNECT_REASONS } from "libwa.js";
 
 client.on("disconnect", (reason) => {
   if (FATAL_DISCONNECT_REASONS.has(reason)) {
@@ -243,7 +243,7 @@ The default logger is `nullLogger` — **the library prints nothing**. Two indep
 | `error` event | programmatic reactions: alerts, metrics, user-facing messages |
 
 ```ts
-import { Client, createConsoleLogger, WhatsAppError } from "libwa";
+import { Client, createConsoleLogger, WhatsAppError } from "libwa.js";
 
 const client = new Client({
   logger: createConsoleLogger("bot"), // "bot error: …"
@@ -269,7 +269,7 @@ try {
   await client.login();
 } catch (error) {
   if (error instanceof AuthenticationError) {
-    console.error("session invalid — delete .libwa/ and re-pair");
+    console.error("session invalid — delete .libwa.js/ and re-pair");
     process.exit(1);
   }
   throw error;

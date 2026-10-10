@@ -1,6 +1,6 @@
 # Exemplos {#examples}
 
-O repositório traz três exemplos executáveis em `examples/`. Eles passam por verificação de tipos como parte do `npm run typecheck` e importam a superfície pública exatamente como o código de um consumidor (`import … from "libwa"`).
+O repositório traz três exemplos executáveis em `examples/`. Eles passam por verificação de tipos como parte do `npm run typecheck` e importam a superfície pública exatamente como o código de um consumidor (`import … from "libwa.js"`).
 
 ::: tip Como executá-los
 Os exemplos são arquivos TypeScript. A partir do repositório da biblioteca:
@@ -43,7 +43,7 @@ client.on("interactionCreate", (interaction: Interaction) => {
   void interaction.reply(`You said: ${interaction.text}`);
 });
 
-client.on("error", (error) => console.error("libwa error:", error.message));
+client.on("error", (error) => console.error("libwa.js error:", error.message));
 client.on("disconnect", (reason) => console.warn(`Disconnected (${reason}).`));
 ```
 
@@ -209,7 +209,7 @@ client.on("error", (error) => {
 
 client.on("disconnect", (reason) => {
   if (reason === DisconnectReason.LoggedOut) {
-    console.error("Session revoked — delete .libwa/ and log in again.");
+    console.error("Session revoked — delete .libwa.js/ and log in again.");
   }
 });
 ```
@@ -225,7 +225,7 @@ Pontos principais:
 Não está no repositório, mas montado a partir das APIs documentadas:
 
 ```ts
-import { Client, type Interaction } from "libwa";
+import { Client, type Interaction } from "libwa.js";
 
 const client = new Client({
   sessionId: process.env.BOT_SESSION ?? "default",
@@ -234,7 +234,7 @@ const client = new Client({
   logger: console, // troque por um adaptador pino/winston
 });
 
-client.on("error", (error) => console.error("[libwa]", error.message));
+client.on("error", (error) => console.error("[libwa.js]", error.message));
 client.on("disconnect", (reason) => {
   console.error("disconnected:", reason);
   if (reason === "loggedOut") process.exit(1); // o orquestrador reinicia após o reset da sessão
@@ -270,7 +270,7 @@ await client.login();
 ## Receita: router por tipo de interação {#recipe-interaction-kind-router}
 
 ```ts
-import type { Client, Interaction } from "libwa";
+import type { Client, Interaction } from "libwa.js";
 
 type Handler = (i: Interaction) => void | Promise<void>;
 const routes = new Map<string, Handler>();

@@ -3,7 +3,7 @@
 <ApiBadge kind="class" /> Dados do provedor normalizados em objetos pequenos, com suporte do cliente: `Chat`, `Group`, `Message`, `User`. As entidades são criadas pela [`EntityFactory`](#entityfactory) (interna) e passadas para as interações.
 
 ```ts
-import { type Chat, type Group, type Message, type User, phoneFromId } from "libwa";
+import { type Chat, type Group, type Message, type User, phoneFromId } from "libwa.js";
 ```
 
 ## Chat <ApiBadge kind="class" /> {#chat}
@@ -217,7 +217,7 @@ class Message {
 | `isReply` | `boolean` | Tem uma referência. |
 | `reply` | `(content: ReplyContent) => Promise<Message>` | Responde com citação neste chat. |
 | `react` | `(emoji: string \| null) => Promise<void>` | Adiciona/limpa a sua reação. |
-| `delete` | `(): Promise<void>` | Apaga esta mensagem (sem checagem de posse no libwa — ex.: administradores de grupo apagando mensagens de outros). |
+| `delete` | `(): Promise<void>` | Apaga esta mensagem (sem checagem de posse no libwa.js — ex.: administradores de grupo apagando mensagens de outros). |
 
 ### `MessageReference` <ApiBadge kind="interface" /> {#messagereference}
 

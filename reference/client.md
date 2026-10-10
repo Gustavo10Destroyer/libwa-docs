@@ -3,7 +3,7 @@
 <ApiBadge kind="class" /> The entry point of the library. One instance = one WhatsApp account/session slot = one backend.
 
 ```ts
-import { Client, type ClientState } from "libwa";
+import { Client, type ClientState } from "libwa.js";
 
 const client = new Client({ commands: { prefix: "!" } });
 await client.login();
@@ -298,7 +298,7 @@ For contributors reading `src/Client.ts` (624 lines):
 ## Full example
 
 ```ts
-import { Client, DisconnectReason, type Interaction } from "libwa";
+import { Client, DisconnectReason, type Interaction } from "libwa.js";
 
 const client = new Client({
   sessionId: "main",
@@ -307,7 +307,7 @@ const client = new Client({
 });
 
 const stopError = client.on("error", (error) => {
-  console.error("[libwa]", error.name, error.code, error.message);
+  console.error("[libwa.js]", error.name, error.code, error.message);
 });
 
 client.on("ready", () => console.log("online:", client.me?.displayName));

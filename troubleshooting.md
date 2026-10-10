@@ -7,7 +7,7 @@ Symptom → cause → fix. Ordered by how often bot authors hit it.
 ### `qr` event never fires
 
 - Attach listeners **before** `login()`: `client.on("qr", …)` after `await client.login()` is too late (the event fires during connect).
-- Pairing flow: listen for `pairingCode` (emitted whenever a code is produced — auto via `auth.pairingPhoneNumber` or manual `requestPairingCode()`). libwa does **not** suppress `qr`; if one still arrives while waiting for the code, ignore it.
+- Pairing flow: listen for `pairingCode` (emitted whenever a code is produced — auto via `auth.pairingPhoneNumber` or manual `requestPairingCode()`). libwa.js does **not** suppress `qr`; if one still arrives while waiting for the code, ignore it.
 - Check you are not swallowing errors: attach `client.on("error", …)` and log it.
 
 ### Pairing code request fails
@@ -30,7 +30,7 @@ await client.logout();   // clears the slot (backend failures are reported throu
 Also happens with an **interrupted pairing**: if a pairing-code/QR attempt was started but never completed on the phone, the slot holds unregistered creds (`"registered": false`) and the server answers `Connection Failure` → `loggedOut`. Recover by deleting the slot file directly (relative to your process working directory):
 
 ```sh
-rm -rf .libwa          # or .libwa/<sessionId>.json for one slot
+rm -rf .libwa.js          # or .libwa.js/<sessionId>.json for one slot
 ```
 
 If the rejection is uncaught (bare top-level `await client.login()`), Node prints the `AuthenticationError` stack and exits `1` — wrap `login()` in `try/catch`.
@@ -44,7 +44,7 @@ You called `destroy()` while login was pending — expected. Create a new `Clien
 Almost always: no `error` listeners and `logger` unset (defaults to `nullLogger`) — failures are invisible. Always start with:
 
 ```ts
-client.on("error", (e) => console.error("[libwa]", e instanceof WhatsAppError ? e.code : "—", e.message, e.cause));
+client.on("error", (e) => console.error("[libwa.js]", e instanceof WhatsAppError ? e.code : "—", e.message, e.cause));
 ```
 
 ## Reconnection
@@ -104,8 +104,8 @@ Skip = stop. A middleware that `return`s without `await next()` blocks commands 
 | Symptom | Code | Fix |
 | --- | --- | --- |
 | startup crash on bad `sessionId` | `ERR_SESSION_ID` | ids must match `[A-Za-z0-9_-]{1,64}` |
-| corrupted file | `ERR_SESSION_CORRUPT` | delete `.libwa/<id>.json` and re-pair (fail-fast by design) |
-| unreadable `.libwa/<id>.json` (EACCES/EIO — exists but cannot be read) | `ERR_SESSION_UNREADABLE` | fix the file's permissions/ownership — do **not** re-pair, the stored session is still there |
+| corrupted file | `ERR_SESSION_CORRUPT` | delete `.libwa.js/<id>.json` and re-pair (fail-fast by design) |
+| unreadable `.libwa.js/<id>.json` (EACCES/EIO — exists but cannot be read) | `ERR_SESSION_UNREADABLE` | fix the file's permissions/ownership — do **not** re-pair, the stored session is still there |
 | bot logged in as wrong account | — | distinct `sessionId`s share one store; check the slot |
 | session ignored after switching backend | — | `provider` mismatch → warn + fresh creds (re-pair) |
 
@@ -116,7 +116,7 @@ Skip = stop. A middleware that `return`s without `await next()` blocks commands 
 | `At least one user is required.` | pass ≥1 target to add/remove/promote/demote |
 | `Group name cannot be empty.` | `rename("")` invalid; `setDescription(undefined)` is how you *clear* |
 | metadata getters `undefined` | call `await group.refresh()` (or `client.groups.fetch`) first |
-| first message in a group never reaches handlers | update libwa — older builds dropped messages carrying the sender-key distribution beside their text (fixed: content wins over plumbing keys) |
+| first message in a group never reaches handlers | update libwa.js — older builds dropped messages carrying the sender-key distribution beside their text (fixed: content wins over plumbing keys) |
 | `groupOnly` command silent in DM | by design; `interactionCreate` listeners still run |
 
 ## Disconnect reasons

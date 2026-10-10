@@ -3,7 +3,7 @@
 <ApiBadge kind="interface" /> Opções aceitas por `new Client(options?)`. Todas as propriedades são opcionais.
 
 ```ts
-import { Client, type ClientOptions } from "libwa";
+import { Client, type ClientOptions } from "libwa.js";
 
 const options: ClientOptions = {
   sessionId: "default",
@@ -20,7 +20,7 @@ const client = new Client(options);
 <ApiTable
   :rows="[
     { name: 'backend', type: 'WhatsAppBackend | (() => WhatsAppBackend)', def: 'undefined → createDefaultBackend()', description: 'Adaptador do provedor. Instâncias são usadas diretamente; factories são chamadas uma vez por Client. Nunca compartilhe uma instância entre clients.' },
-    { name: 'sessionStore', type: 'SessionStore', def: 'undefined → new FileSessionStore()', description: 'Onde o estado de login persiste. O padrão é um store em disco em .libwa/; troque por SqliteSessionStore em produção, MemorySessionStore em testes, ou o seu próprio.' },
+    { name: 'sessionStore', type: 'SessionStore', def: 'undefined → new FileSessionStore()', description: 'Onde o estado de login persiste. O padrão é um store em disco em .libwa.js/; troque por SqliteSessionStore em produção, MemorySessionStore em testes, ou o seu próprio.' },
     { name: 'sessionId', type: 'string', def: '&quot;default&quot;', description: 'Id do slot dentro da store; deve casar com [A-Za-z0-9_-]{1,64} (imposto pelas stores de arquivo e SQLite).' },
     { name: 'logger', type: 'Logger', def: 'undefined → nullLogger', description: 'Destino dos diagnósticos internos. O padrão descarta tudo — injete um logger para ver algo.' },
     { name: 'commands', type: 'CommandOptions | false', def: 'undefined → { prefix: &quot;!&quot; }', description: 'Configuração da análise de comandos, ou false para desativá-la completamente.' },

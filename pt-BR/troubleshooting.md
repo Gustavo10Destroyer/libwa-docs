@@ -7,7 +7,7 @@ Sintoma → causa → correção. Ordenado por frequência com que autores de bo
 ### O evento `qr` nunca dispara {#qr-event-never-fires}
 
 - Anexe os listeners **antes** de `login()`: `client.on("qr", …)` depois de `await client.login()` é tarde demais (o evento dispara durante a conexão).
-- Fluxo de pareamento: escute `pairingCode` (emitido sempre que um código é produzido — automático via `auth.pairingPhoneNumber` ou manual via `requestPairingCode()`). libwa **não** suprime o `qr`; se um ainda chegar enquanto você espera o código, ignore-o.
+- Fluxo de pareamento: escute `pairingCode` (emitido sempre que um código é produzido — automático via `auth.pairingPhoneNumber` ou manual via `requestPairingCode()`). libwa.js **não** suprime o `qr`; se um ainda chegar enquanto você espera o código, ignore-o.
 - Verifique se não está engolindo erros: anexe `client.on("error", …)` e registre-o no log.
 
 ### A solicitação de código de pareamento falha {#pairing-code-request-fails}
@@ -30,7 +30,7 @@ await client.logout();   // limpa o slot (falhas de backend são reportadas atra
 Também acontece com um **pareamento interrompido**: se uma tentativa por código de pareamento/QR foi iniciada mas nunca concluída no telefone, o slot guarda creds não registradas (`"registered": false`) e o servidor responde `Connection Failure` → `loggedOut`. Recupere excluindo o arquivo do slot diretamente (relativo ao diretório de trabalho do seu processo):
 
 ```sh
-rm -rf .libwa          # ou .libwa/<sessionId>.json para um único slot
+rm -rf .libwa.js          # ou .libwa.js/<sessionId>.json para um único slot
 ```
 
 Se a rejeição não for capturada (`await client.login()` solto no topo), o Node imprime o stack do `AuthenticationError` e sai com `1` — envolva `login()` em `try/catch`.
@@ -44,7 +44,7 @@ Você chamou `destroy()` enquanto o login estava pendente — comportamento espe
 Quase sempre: sem listeners de `error` e `logger` não configurado (o padrão é `nullLogger`) — as falhas ficam invisíveis. Comece sempre com:
 
 ```ts
-client.on("error", (e) => console.error("[libwa]", e instanceof WhatsAppError ? e.code : "—", e.message, e.cause));
+client.on("error", (e) => console.error("[libwa.js]", e instanceof WhatsAppError ? e.code : "—", e.message, e.cause));
 ```
 
 ## Reconexão {#reconnection}
@@ -104,8 +104,8 @@ Pular = parar. Um middleware que faz `return` sem `await next()` bloqueia comand
 | Sintoma | Código | Correção |
 | --- | --- | --- |
 | crash na inicialização com `sessionId` inválido | `ERR_SESSION_ID` | ids devem casar com `[A-Za-z0-9_-]{1,64}` |
-| arquivo corrompido | `ERR_SESSION_CORRUPT` | exclua `.libwa/<id>.json` e faça o pareamento de novo (fail-fast por design) |
-| `.libwa/<id>.json` ilegível (EACCES/EIO — existe mas não pode ser lido) | `ERR_SESSION_UNREADABLE` | corrija permissões/propriedade do arquivo — **não** refaça o pareamento, a sessão armazenada ainda está lá |
+| arquivo corrompido | `ERR_SESSION_CORRUPT` | exclua `.libwa.js/<id>.json` e faça o pareamento de novo (fail-fast por design) |
+| `.libwa.js/<id>.json` ilegível (EACCES/EIO — existe mas não pode ser lido) | `ERR_SESSION_UNREADABLE` | corrija permissões/propriedade do arquivo — **não** refaça o pareamento, a sessão armazenada ainda está lá |
 | bot logado na conta errada | — | `sessionId`s distintos compartilham uma store; verifique o slot |
 | sessão ignorada após trocar de backend | — | `provider` divergente → warning + creds novas (pareamento) |
 
@@ -116,7 +116,7 @@ Pular = parar. Um middleware que faz `return` sem `await next()` bloqueia comand
 | `At least one user is required.` | passe ≥1 alvo para add/remove/promote/demote |
 | `Group name cannot be empty.` | `rename("")` inválido; `setDescription(undefined)` é como você *limpa* |
 | getters de metadados `undefined` | chame `await group.refresh()` (ou `client.groups.fetch`) primeiro |
-| primeira mensagem em um grupo nunca chega aos handlers | atualize o libwa — builds antigos descartavam mensagens que carregavam a distribuição de sender-key ao lado do texto (corrigido: o conteúdo vence as chaves de plumbing) |
+| primeira mensagem em um grupo nunca chega aos handlers | atualize o libwa.js — builds antigos descartavam mensagens que carregavam a distribuição de sender-key ao lado do texto (corrigido: o conteúdo vence as chaves de plumbing) |
 | comando `groupOnly` silencioso no DM | por design; os listeners de `interactionCreate` ainda rodam |
 
 ## Motivos de desconexão {#disconnect-reasons}

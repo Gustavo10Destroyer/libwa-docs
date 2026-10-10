@@ -1,7 +1,7 @@
 {
-  "name": "libwa-docs",
+  "name": "libwa.js-docs",
   "version": "0.1.0",
-  "description": "Documentation site for libwa — built with VitePress.",
+  "description": "Documentation site for libwa.js — built with VitePress.",
   "type": "module",
   "private": true,
   "license": "MIT",

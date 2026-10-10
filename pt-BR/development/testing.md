@@ -1,6 +1,6 @@
 # Testes {#testing}
 
-Como o `libwa` é testado: estratégia, helpers, mapa das suites e o que cada camada garante.
+Como o `libwa.js` é testado: estratégia, helpers, mapa das suites e o que cada camada garante.
 
 ## Configuração {#setup}
 

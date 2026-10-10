@@ -13,7 +13,7 @@ flowchart TD
         SS["SessionStore contract<br/>load · save · clear"]
     end
     subgraph Stores["Implementations"]
-        FS["FileSessionStore<br/>.libwa/id.json · temp+rename"]
+        FS["FileSessionStore<br/>.libwa.js/id.json · temp+rename"]
         SQ["SqliteSessionStore<br/>one WAL db · upsert per slot"]
         MS["MemorySessionStore<br/>Map (tests)"]
         Custom["Your Redis/SQL store"]
@@ -51,7 +51,7 @@ Design rules:
 2. **Slot = `sessionId`** — multiple accounts share one store (`sessionId: "alice"` / `"bob"`).
 3. **Missing ≠ error** — `load()` returns `null`; `clear()` of a missing slot is a no-op.
 4. **Only through the given store** — a backend never opens files or reads env; `BackendConnectOptions.sessionStore` is the single channel.
-5. **Caller owns teardown** — libwa never calls `close()`; a store that holds an fd or a connection exposes it, and the code that created the store invokes it.
+5. **Caller owns teardown** — libwa.js never calls `close()`; a store that holds an fd or a connection exposes it, and the code that created the store invokes it.
 
 ## Baileys persistence
 
@@ -84,7 +84,7 @@ sequenceDiagram
 
 ### FileSessionStore (default)
 
-- path `<directory>/<id>.json` (`directory` default `.libwa`);
+- path `<directory>/<id>.json` (`directory` default `.libwa.js`);
 - payload `{ provider, data: base64, updatedAt }`;
 - **atomic**: write `<file>.<writerId>.tmp` → `rename()` (`writerId` = a `randomUUID()` per store instance, so concurrent stores never share one temp file);
 - **serialized per slot**: internal promise queue per id;
@@ -94,16 +94,16 @@ sequenceDiagram
 
 ### SqliteSessionStore
 
-- one database file for every slot (`filename` default `libwa-sessions.db`), table `sessions(id, provider, data, updated_at) WITHOUT ROWID`;
+- one database file for every slot (`filename` default `libwa.js-sessions.db`), table `sessions(id, provider, data, updated_at) WITHOUT ROWID`;
 - **durable**: `journal_mode = WAL` + `synchronous = FULL`; skipped for `":memory:"`;
 - **multi-process**: `busy_timeout = busyTimeoutMs` (default 5000 ms) so a second writer blocks instead of raising `SQLITE_BUSY`;
 - **serialized per save**: a single `INSERT … ON CONFLICT(id) DO UPDATE` — SQLite serializes writers, so there is no read-modify-write window;
 - **safe ids**: the same `assertSafeSessionId` as the file store → `ERR_SESSION_ID`;
-- **schema version** in `PRAGMA user_version` — opening a database written by a newer libwa fails with `ERR_SESSION_STORE` instead of guessing at unknown columns;
+- **schema version** in `PRAGMA user_version` — opening a database written by a newer libwa.js fails with `ERR_SESSION_STORE` instead of guessing at unknown columns;
 - **closed handle** → `ERR_SESSION_STORE` on every subsequent call (`#assertOpen`), never a silent reopen;
 - corrupt column types → `ERR_SESSION_CORRUPT`; driver load failure (missing `better-sqlite3` binding) → `ERR_SESSION_STORE` with the reinstall hint.
 
-The driver is loaded lazily through `createRequire`, so `import "libwa"` never touches the native binding — a store construction is the only thing that can fail on it.
+The driver is loaded lazily through `createRequire`, so `import "libwa.js"` never touches the native binding — a store construction is the only thing that can fail on it.
 
 ### MemorySessionStore
 
@@ -131,7 +131,7 @@ Multi-account: one store, distinct `sessionId`s — each gets an independent slo
 const file = new FileSessionStore({ directory: "/var/lib/bots" });
 const alice = new Client({ sessionStore: file, sessionId: "alice" });
 const bob = new Client({ sessionStore: file, sessionId: "bob" });
-// .libwa/alice.json · .libwa/bob.json
+// .libwa.js/alice.json · .libwa.js/bob.json
 
 const db = new SqliteSessionStore({ filename: "/var/lib/bots/sessions.db" });
 const carol = new Client({ sessionStore: db, sessionId: "carol" });

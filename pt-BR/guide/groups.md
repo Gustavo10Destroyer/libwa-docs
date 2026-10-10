@@ -157,7 +157,7 @@ Depois de um rename/atualização de descrição bem-sucedido, a metadata em cac
 
 ### O evento: `interactionCreate` {#the-event-interactioncreate}
 
-Toda interação de grupo — mudanças de participação, mudanças de metadata, mensagens comuns de grupo — chega no único evento [`interactionCreate`](/pt-BR/guide/events). O conjunto de eventos do libwa é deliberadamente fechado: **não existe** evento separado `groupAdd`/`groupRemove`/`groupPromote`. Registre um listener e filtre com os type guards:
+Toda interação de grupo — mudanças de participação, mudanças de metadata, mensagens comuns de grupo — chega no único evento [`interactionCreate`](/pt-BR/guide/events). O conjunto de eventos do libwa.js é deliberadamente fechado: **não existe** evento separado `groupAdd`/`groupRemove`/`groupPromote`. Registre um listener e filtre com os type guards:
 
 ```ts
 client.on("interactionCreate", async (i) => {
@@ -313,7 +313,7 @@ client.on("interactionCreate", (i) => {
 });
 ```
 
-Limpezas de descrição são normalizadas: o provedor envia `desc: null`, o libwa mapeia para `changes.description === undefined` com a chave **presente** (`"description" in changes` é `true` — presença da chave, não do valor).
+Limpezas de descrição são normalizadas: o provedor envia `desc: null`, o libwa.js mapeia para `changes.description === undefined` com a chave **presente** (`"description" in changes` é `true` — presença da chave, não do valor).
 
 Um `groupUpdate` cuja diff contra a metadata em cache é vazia é descartado antes do dispatch, então os listeners nunca veem uma atualização que não faz nada.
 
@@ -471,7 +471,7 @@ if (user) {
 Dados de perfil trafegam pelos mesmos ids, cada um atrás da sua própria capacidade opcional: `client.users.pictureUrl(id, type?)` (URL da foto de perfil, `undefined` quando ausente ou privada), `client.users.about(id)` (texto da bio/status) e `client.users.accountType(id)` (`"standard" | "business"`). Eles aceitam as mesmas formas de id que `fetch`; veja [UserService](/pt-BR/reference/entities#userservice) para os erros.
 
 ::: tip Nomes da lista de contatos não são sincronizados
-O nome que **você** salvou na agenda do seu celular ("Mãe", "Ana — trabalho") fica no seu dispositivo e **não** faz parte dos seis eventos normalizados do libwa — ele não pode ser lido de um `User`. Use os nomes de perfil do WhatsApp (acima) ou mantenha o seu próprio mapa `UserId → name`. Participantes de grupo podem carregar um nome fornecido pelo provedor em `GroupMetadata.participants[].name`, mas costuma ser `undefined` com o backend Baileys; `displayName` sempre recua graciosamente (name → phone → id).
+O nome que **você** salvou na agenda do seu celular ("Mãe", "Ana — trabalho") fica no seu dispositivo e **não** faz parte dos seis eventos normalizados do libwa.js — ele não pode ser lido de um `User`. Use os nomes de perfil do WhatsApp (acima) ou mantenha o seu próprio mapa `UserId → name`. Participantes de grupo podem carregar um nome fornecido pelo provedor em `GroupMetadata.participants[].name`, mas costuma ser `undefined` com o backend Baileys; `displayName` sempre recua graciosamente (name → phone → id).
 :::
 
 ## Grupos apenas de anúncio (admin) {#announce-only-admin-groups}
@@ -485,12 +485,12 @@ if (group.announceOnly && !i.author?.isMe) {
 }
 ```
 
-O libwa deliberadamente **não** traz um motor de permissões: a metadata diz *o que é*, o seu código decide *o que fazer*. Um guard de comando exclusivo de grupo (`groupOnly: true`) cobre o caso comum.
+O libwa.js deliberadamente **não** traz um motor de permissões: a metadata diz *o que é*, o seu código decide *o que fazer*. Um guard de comando exclusivo de grupo (`groupOnly: true`) cobre o caso comum.
 
 ## Um comando completo ciente de grupo {#a-complete-group-aware-command}
 
 ```ts
-import { Client, NotFoundError, PermissionError, type CommandInteraction } from "libwa";
+import { Client, NotFoundError, PermissionError, type CommandInteraction } from "libwa.js";
 
 const client = new Client({ commands: { prefix: "!" } });
 

@@ -1,6 +1,6 @@
 # Workflow
 
-Daily commands for developing `libwa` — from quick loops to the full gate.
+Daily commands for developing `libwa.js` — from quick loops to the full gate.
 
 ## Scripts
 
@@ -50,7 +50,7 @@ npm run verify              # adapter is still the only provider importer
 **Docs work** (this site)
 
 ```bash
-cd ../libwa-docs
+cd ../libwa.js-docs
 npm run dev                 # http://localhost:5173
 npm run build               # production bundle
 ```
@@ -78,11 +78,11 @@ None of the stages is optional in `verify`; the repo treats a failing stage as "
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` (in the libwa repo) runs the same gate outside a laptop: on **pushes to `main`** and on **pull requests** it checks out the repo, sets up **Node 20** (with npm cache), runs `npm ci`, then `npm run verify` — typecheck, tests, lint, build, `check:exports`. There is no CI-only logic: if `npm run verify` is green locally, CI is green.
+`.github/workflows/ci.yml` (in the libwa.js repo) runs the same gate outside a laptop: on **pushes to `main`** and on **pull requests** it checks out the repo, sets up **Node 20** (with npm cache), runs `npm ci`, then `npm run verify` — typecheck, tests, lint, build, `check:exports`. There is no CI-only logic: if `npm run verify` is green locally, CI is green.
 
 ## Git hygiene (repo practice)
 
-- stage only intended files; never commit `dist/` or `.libwa/` (both ignored);
+- stage only intended files; never commit `dist/` or `.libwa.js/` (both ignored);
 - message style: short imperative line, scope when useful (`fix: guard login rejection without listeners`);
 - no commits during `verify` failures — fix forward, don't amend broken commits.
 

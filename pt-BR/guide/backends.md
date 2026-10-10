@@ -1,6 +1,6 @@
 # Backends {#backends}
 
-Um **backend** adapta um provedor concreto do WhatsApp ao domínio normalizado do libwa. O core depende apenas da interface [`WhatsAppBackend`](/pt-BR/reference/backend#whatsappbackend), e é isso que torna os provedores trocáveis — e testáveis — sem tocar no código da aplicação.
+Um **backend** adapta um provedor concreto do WhatsApp ao domínio normalizado do libwa.js. O core depende apenas da interface [`WhatsAppBackend`](/pt-BR/reference/backend#whatsappbackend), e é isso que torna os provedores trocáveis — e testáveis — sem tocar no código da aplicação.
 
 ## Backends embutidos {#bundled-backends}
 
@@ -10,7 +10,7 @@ Um **backend** adapta um provedor concreto do WhatsApp ao domínio normalizado d
 | [`createBaileysBackend(options?)`](/pt-BR/reference/backend#createbaileysbackend) | `baileys` | Construção explícita com [`BaileysBackendOptions`](/pt-BR/reference/backend#baileysbackendoptions). |
 
 ```ts
-import { Client, createBaileysBackend } from "libwa";
+import { Client, createBaileysBackend } from "libwa.js";
 
 const client = new Client({
   backend: createBaileysBackend({
@@ -24,8 +24,8 @@ const client = new Client({
 
 <ApiTable
   :rows="[
-    { name: 'browser', type: 'readonly [name: string, version: string, platform: string]', def: '[&quot;libwa&quot;, &quot;1.0.0&quot;, &quot;1&quot;]', description: 'Identidade do navegador usada durante o login — visível no celular, em Dispositivos vinculados.' },
-    { name: 'syncFullHistory', type: 'boolean', def: 'false', description: 'Pedir ao celular o histórico completo de chats no login. A libwa ainda despacha apenas mensagens ao vivo (notify), de qualquer forma.' }
+    { name: 'browser', type: 'readonly [name: string, version: string, platform: string]', def: '[&quot;libwa.js&quot;, &quot;1.0.0&quot;, &quot;1&quot;]', description: 'Identidade do navegador usada durante o login — visível no celular, em Dispositivos vinculados.' },
+    { name: 'syncFullHistory', type: 'boolean', def: 'false', description: 'Pedir ao celular o histórico completo de chats no login. A libwa.js ainda despacha apenas mensagens ao vivo (notify), de qualquer forma.' }
   ]"
 />
 
@@ -155,14 +155,14 @@ import type {
   GroupMetadata,
   Unsubscribe,
   WhatsAppBackend,
-} from "libwa";
+} from "libwa.js";
 
 type Listener = (...args: never[]) => unknown;
 
 class MyBackend implements WhatsAppBackend {
   readonly id = "my-backend";
 
-  // Barramento de eventos mínimo — o TypedEventEmitter existe no libwa mas é interno,
+  // Barramento de eventos mínimo — o TypedEventEmitter existe no libwa.js mas é interno,
   // então um mapa privado de listeners mantém o exemplo autossuficiente.
   #listeners = new Map<BackendEventName, Set<Listener>>();
   #connected = false;

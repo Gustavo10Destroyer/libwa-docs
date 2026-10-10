@@ -1,9 +1,9 @@
 # Configuration
 
-All configuration flows through the [`ClientOptions`](/reference/client-options) object passed to `new Client(options?)`. Every option is optional; omitting everything yields a working default bot (Baileys backend, `!` prefix, `.libwa/` sessions, silent logger, exponential reconnection).
+All configuration flows through the [`ClientOptions`](/reference/client-options) object passed to `new Client(options?)`. Every option is optional; omitting everything yields a working default bot (Baileys backend, `!` prefix, `.libwa.js/` sessions, silent logger, exponential reconnection).
 
 ```ts
-import { Client } from "libwa";
+import { Client } from "libwa.js";
 
 const client = new Client({
   sessionId: "work",
@@ -21,7 +21,7 @@ const client = new Client({
 <ApiTable
   :rows="[
     { name: 'backend', type: 'WhatsAppBackend | (() => WhatsAppBackend)', def: 'createDefaultBackend()', description: 'Provider adapter. A instance is used directly; a function is invoked once per Client construction. Defaults to the bundled Baileys backend.' },
-    { name: 'sessionStore', type: 'SessionStore', def: 'new FileSessionStore()', description: 'Persistence for login state. Defaults to a filesystem store writing into .libwa/; use SqliteSessionStore in production.' },
+    { name: 'sessionStore', type: 'SessionStore', def: 'new FileSessionStore()', description: 'Persistence for login state. Defaults to a filesystem store writing into .libwa.js/; use SqliteSessionStore in production.' },
     { name: 'sessionId', type: 'string', def: '&quot;default&quot;', description: 'Slot id inside the store. Use distinct ids for multiple accounts over one store.' },
     { name: 'logger', type: 'Logger', def: 'nullLogger', description: 'Receives internal diagnostics. Defaults to a silent logger — nothing is printed unless you inject one.' },
     { name: 'commands', type: 'CommandOptions | false', def: '{ prefix: &quot;!&quot; }', description: 'Command parsing configuration, or false to disable prefix parsing entirely (every text message stays a plain MessageInteraction).' },
@@ -59,9 +59,9 @@ Fatal reasons — [`LoggedOut`, `BadSession`, `ConnectionReplaced`, `Forbidden`]
 The [`Logger`](/reference/logger) interface is four methods:
 
 ```ts
-import { type Logger, createConsoleLogger, nullLogger } from "libwa";
+import { type Logger, createConsoleLogger, nullLogger } from "libwa.js";
 
-// Built-in console logger with your prefix: "my-bot info: ..." (default prefix "libwa")
+// Built-in console logger with your prefix: "my-bot info: ..." (default prefix "libwa.js")
 const logger = createConsoleLogger("my-bot");
 
 // Bring your own (pino, winston, ts-log, ...)
@@ -94,7 +94,7 @@ Reconnection and command defaults are applied here; `ResolvedClientOptions` (exp
 ### Development bot with visible logging
 
 ```ts
-import { Client, createConsoleLogger } from "libwa";
+import { Client, createConsoleLogger } from "libwa.js";
 
 const client = new Client({
   logger: createConsoleLogger("dev-bot"),
@@ -105,7 +105,7 @@ const client = new Client({
 ### Multi-account bot sharing one store
 
 ```ts
-import { Client, FileSessionStore } from "libwa";
+import { Client, FileSessionStore } from "libwa.js";
 
 const store = new FileSessionStore({ directory: ".sessions" });
 
@@ -118,7 +118,7 @@ Each slot gets its own `<directory>/<id>.json` file. Slot ids must match `/^[A-Z
 ### Production: one SQLite database
 
 ```ts
-import { Client, SqliteSessionStore } from "libwa";
+import { Client, SqliteSessionStore } from "libwa.js";
 
 const store = new SqliteSessionStore({ filename: "var/bots.db", busyTimeoutMs: 5000 });
 
@@ -128,7 +128,7 @@ const support = new Client({ sessionStore: store, sessionId: "support" });
 // … on shutdown:
 await sales.destroy();
 await support.destroy();
-store.close(); // you own the handle — libwa never closes it
+store.close(); // you own the handle — libwa.js never closes it
 ```
 
 Every slot is a row in one WAL-mode database: crash-safe (`synchronous = FULL`), safe to share between processes (`busy_timeout`), and a single transactional upsert per save. See [Sessions → SqliteSessionStore](/reference/sessions#sqlitesessionstore).
@@ -136,7 +136,7 @@ Every slot is a row in one WAL-mode database: crash-safe (`synchronous = FULL`),
 ### Test bot with no persistence
 
 ```ts
-import { Client, MemorySessionStore } from "libwa";
+import { Client, MemorySessionStore } from "libwa.js";
 
 const client = new Client({
   sessionStore: new MemorySessionStore(),
@@ -167,7 +167,7 @@ A backend owns a live provider socket. One `Client` per backend instance.
 
 ## Environment variables
 
-libwa itself reads **no** environment variables. The bundled example `examples/pairing-login.ts` reads one for convenience:
+libwa.js itself reads **no** environment variables. The bundled example `examples/pairing-login.ts` reads one for convenience:
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -181,11 +181,11 @@ WA_PHONE_NUMBER=5511999999999 npx tsx examples/pairing-login.ts
 
 | File | Role |
 | --- | --- |
-| `package.json` | Declares the `libwa` dependency; `"type": "module"` recommended (libwa is ESM). |
+| `package.json` | Declares the `libwa.js` dependency; `"type": "module"` recommended (libwa.js is ESM). |
 | `tsconfig.json` | Recommended compiler flags are documented in [Coding conventions](/development/conventions). |
-| `.libwa/*.json` | Runtime session files written by the default `FileSessionStore` (not configuration — do not edit by hand). |
+| `.libwa.js/*.json` | Runtime session files written by the default `FileSessionStore` (not configuration — do not edit by hand). |
 
-There is no libwa config file: **code is configuration** (`new Client({...})`).
+There is no libwa.js config file: **code is configuration** (`new Client({...})`).
 
 ## Common mistakes
 
@@ -195,4 +195,4 @@ There is no libwa config file: **code is configuration** (`new Client({...})`).
 | `commands: { prefix: [] }` | `ValidationError: Command prefix must be a non-empty string...` at construction | Pass at least one non-empty prefix |
 | Reusing one `sessionId` for two live clients | Session file contention; both bots fight over one login | One slot per account |
 | `reconnect: false` in production | First network blip emits `disconnect` | Leave defaults or tune `ReconnectOptions` |
-| Committing `.libwa/` | Leaks your session | Add it to `.gitignore` |
+| Committing `.libwa.js/` | Leaks your session | Add it to `.gitignore` |

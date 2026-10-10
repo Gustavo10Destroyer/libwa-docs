@@ -1,20 +1,20 @@
 # Changelog
 
-All notable changes to the **libwa** package (this site documents `libwa`, not the docs repo). Versions follow [Semantic Versioning](https://semver.org): minor bumps may contain breaking changes while the major version is `0` — each entry spells them out.
+All notable changes to the **libwa.js** package (this site documents `libwa.js`, not the docs repo). Versions follow [Semantic Versioning](https://semver.org): minor bumps may contain breaking changes while the major version is `0` — each entry spells them out.
 
 ## 0.4.0 (2026-10-07)
 
-Work on `libwa`'s main branch since 0.3.0, now released.
+Work on `libwa.js`'s main branch since 0.3.0, now released.
 
 ### Added
 
 - **`SqliteSessionStore`** — the store to run a bot on in production. One SQLite database file holds every session slot, so credentials survive restarts, several bot processes can share a deployment, and moving the bot means copying one file instead of a directory tree.
   - WAL journal + `synchronous = FULL` for crash safety, `busy_timeout` (default 5000 ms) so a second writer blocks instead of failing with `SQLITE_BUSY`, and one transactional `INSERT … ON CONFLICT` upsert per save.
-  - Schema version in `PRAGMA user_version`: a database written by a newer libwa is refused rather than opened with a schema this build does not understand.
+  - Schema version in `PRAGMA user_version`: a database written by a newer libwa.js is refused rather than opened with a schema this build does not understand.
   - Ids validated exactly like `FileSessionStore`; a row with the wrong column types → `ERR_SESSION_CORRUPT`; every failure after `close()` → `ERR_SESSION_STORE`.
-  - Backed by `better-sqlite3` (a regular dependency), loaded lazily through `createRequire` — `import "libwa"` never touches the native binding. An install done with `--ignore-scripts` fails with an actionable `ERR_SESSION_STORE`, not a load crash.
-  - Options: `filename` (default `libwa-sessions.db`, `":memory:"` and `file:` URIs supported, parent directories created) and `busyTimeoutMs`.
-- **`SessionStore.close?()`** — an optional teardown hook on the store contract. libwa never calls it: the store's creator owns the handle and calls `close()` on shutdown, and every operation on a closed `SqliteSessionStore` rejects with `ERR_SESSION_STORE` instead of reopening the file behind your back.
+  - Backed by `better-sqlite3` (a regular dependency), loaded lazily through `createRequire` — `import "libwa.js"` never touches the native binding. An install done with `--ignore-scripts` fails with an actionable `ERR_SESSION_STORE`, not a load crash.
+  - Options: `filename` (default `libwa.js-sessions.db`, `":memory:"` and `file:` URIs supported, parent directories created) and `busyTimeoutMs`.
+- **`SessionStore.close?()`** — an optional teardown hook on the store contract. libwa.js never calls it: the store's creator owns the handle and calls `close()` on shutdown, and every operation on a closed `SqliteSessionStore` rejects with `ERR_SESSION_STORE` instead of reopening the file behind your back.
 - **`Client.isSelf(id)`** — synchronous "is this the bot account?" check that answers under either id scheme (recorded pairs included).
 - **`Interaction.reply(content, options?)` and `Message.reply(content, options?)`** — interaction-aware replies that quote the message being answered, with `replyToMessageId` / `quote` precedence spelled out.
 - **`ERR_SESSION_UNREADABLE`** — a session file that exists but cannot be read (permissions, I/O) now raises `ValidationError` with this code and the original cause, instead of looking like "no session".

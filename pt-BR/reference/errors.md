@@ -3,7 +3,7 @@
 <ApiBadge kind="class" /> Uma única hierarquia: toda falha da biblioteca estende `WhatsAppError`, carrega um `code` estável e pode preservar o erro do provedor como `cause`. As classes de erro do provedor nunca chegam ao código da aplicação.
 
 ```ts
-import { WhatsAppError, ValidationError, toError } from "libwa";
+import { WhatsAppError, ValidationError, toError } from "libwa.js";
 
 try {
   await client.login();

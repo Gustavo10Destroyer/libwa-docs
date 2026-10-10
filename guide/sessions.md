@@ -1,6 +1,6 @@
 # Sessions & login
 
-A **session** is the persisted login state that lets your bot come back online without scanning a QR again. libwa keeps sessions provider-independent: the core stores an opaque blob; only the owning backend interprets it.
+A **session** is the persisted login state that lets your bot come back online without scanning a QR again. libwa.js keeps sessions provider-independent: the core stores an opaque blob; only the owning backend interprets it.
 
 ## The session model
 
@@ -34,9 +34,9 @@ Rules:
 ### FileSessionStore (default)
 
 ```ts
-import { Client, FileSessionStore } from "libwa";
+import { Client, FileSessionStore } from "libwa.js";
 
-new Client(); // → new FileSessionStore() → directory ".libwa"
+new Client(); // → new FileSessionStore() → directory ".libwa.js"
 new Client({ sessionStore: new FileSessionStore({ directory: ".sessions/work" }) });
 ```
 
@@ -56,7 +56,7 @@ new Client({ sessionStore: new FileSessionStore({ directory: ".sessions/work" })
 ### SqliteSessionStore (production)
 
 ```ts
-import { Client, SqliteSessionStore } from "libwa";
+import { Client, SqliteSessionStore } from "libwa.js";
 
 const store = new SqliteSessionStore({ filename: "var/bot.db" });
 const sales = new Client({ sessionStore: store, sessionId: "sales" });
@@ -66,21 +66,21 @@ await Promise.all([sales.login(), support.login()]);
 // on shutdown:
 await sales.destroy();
 await support.destroy();
-store.close(); // you own the handle — libwa never closes it
+store.close(); // you own the handle — libwa.js never closes it
 ```
 
 One database file holds every slot. Prefer it over the file store once sessions matter: WAL mode plus `synchronous = FULL` means the last credential write survives a power loss, a `busy_timeout` lets a second process (a migration tool, a second instance) block instead of erroring, and each save is a single transactional upsert.
 
-- Options: `filename` (default `libwa-sessions.db`; missing parent directories are created) and `busyTimeoutMs` (default `5000`).
+- Options: `filename` (default `libwa.js-sessions.db`; missing parent directories are created) and `busyTimeoutMs` (default `5000`).
 - Ids are validated exactly like `FileSessionStore`; a row with the wrong column types → `ERR_SESSION_CORRUPT`.
 - Used after `close()` → `ERR_SESSION_STORE`, so shutdown bugs fail loudly.
-- The schema version lives in `PRAGMA user_version`: a database written by a newer libwa is refused instead of being opened with a schema this build does not understand.
-- Backed by `better-sqlite3`, loaded lazily — `import "libwa"` never touches the native binding. An install done with `--ignore-scripts` fails with `ERR_SESSION_STORE` and instructions, not a load crash.
+- The schema version lives in `PRAGMA user_version`: a database written by a newer libwa.js is refused instead of being opened with a schema this build does not understand.
+- Backed by `better-sqlite3`, loaded lazily — `import "libwa.js"` never touches the native binding. An install done with `--ignore-scripts` fails with `ERR_SESSION_STORE` and instructions, not a load crash.
 
 ### MemorySessionStore (tests / ephemeral)
 
 ```ts
-import { MemorySessionStore } from "libwa";
+import { MemorySessionStore } from "libwa.js";
 
 const store = new MemorySessionStore(); // sessions vanish on process exit
 ```
@@ -90,7 +90,7 @@ const store = new MemorySessionStore(); // sessions vanish on process exit
 ### Bring your own
 
 ```ts
-import type { Session, SessionStore } from "libwa";
+import type { Session, SessionStore } from "libwa.js";
 
 const redisStore: SessionStore = {
   async load(id) {
@@ -106,7 +106,7 @@ const redisStore: SessionStore = {
 };
 ```
 
-Expectations: `save` must persist `data` losslessly (bytes!); `load` returns `null` for missing; `clear` is idempotent. Everything else (queues, validation) is your store's business. If your store holds a socket or connection, add the optional `close(): Promise<void> | void` — libwa never calls it, so call it yourself on shutdown.
+Expectations: `save` must persist `data` losslessly (bytes!); `load` returns `null` for missing; `clear` is idempotent. Everything else (queues, validation) is your store's business. If your store holds a socket or connection, add the optional `close(): Promise<void> | void` — libwa.js never calls it, so call it yourself on shutdown.
 
 ## What's inside the blob (Baileys)
 
@@ -226,9 +226,9 @@ await client.destroy();
 
 ## Session hygiene
 
-- **`.libwa/` (and `*.db`) is sensitive** — it authenticates your account. Add to `.gitignore`, never commit, never share. SQLite may also leave `-wal` / `-shm` files next to the database; they belong to the same secret.
+- **`.libwa.js/` (and `*.db`) is sensitive** — it authenticates your account. Add to `.gitignore`, never commit, never share. SQLite may also leave `-wal` / `-shm` files next to the database; they belong to the same secret.
 - **Rotating devices**: WhatsApp may revoke sessions remotely → next connect yields `DisconnectReason.LoggedOut` → `disconnect` event, no retry. Delete the slot and re-pair.
-- **Deleting the slot** (`rm .libwa/default.json` or `sessionStore.clear(id)`) forces a fresh login.
+- **Deleting the slot** (`rm .libwa.js/default.json` or `sessionStore.clear(id)`) forces a fresh login.
 - **Corrupt slot**: the library fails with `ValidationError` telling you to clear it — fix by deleting the file/row, not by hand-editing JSON.
 - **Shutdown**: `await client.destroy()` first (it stops writing), then `store.close()` if you are using `SqliteSessionStore`.
 

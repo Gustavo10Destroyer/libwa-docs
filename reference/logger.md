@@ -3,7 +3,7 @@
 <ApiBadge kind="interface" /> Minimal pluggable logging contract. The library prints nothing by default — inject a `Logger` via [`ClientOptions.logger`](/reference/client-options) to observe internal activity.
 
 ```ts
-import { Client, createConsoleLogger } from "libwa";
+import { Client, createConsoleLogger } from "libwa.js";
 
 new Client({ logger: createConsoleLogger("mybot") });
 ```
@@ -36,7 +36,7 @@ new Client();                 // logger: nullLogger (silent)
 ## `createConsoleLogger` <ApiBadge kind="function" />
 
 ```ts
-function createConsoleLogger(prefix?: string): Logger; // default prefix "libwa"
+function createConsoleLogger(prefix?: string): Logger; // default prefix "libwa.js"
 ```
 
 Development logger printing to `console.debug/info/warn/error` with a `` `${prefix} ${level}:` `` head.
@@ -44,7 +44,7 @@ Development logger printing to `console.debug/info/warn/error` with a `` `${pref
 ```ts
 createConsoleLogger("bot");
 // debug: …  →  "bot debug: …"
-createConsoleLogger();        // "libwa debug: …"
+createConsoleLogger();        // "libwa.js debug: …"
 ```
 
 ## What gets logged
@@ -61,10 +61,10 @@ The `error` **event** and the logger are independent: without `error` listeners,
 ## Wiring a real logger
 
 ```ts
-import { Client, type Logger } from "libwa";
+import { Client, type Logger } from "libwa.js";
 import pino from "pino";
 
-const p = pino({ name: "libwa-bot" });
+const p = pino({ name: "libwa.js-bot" });
 const logger: Logger = {
   debug: (...a) => p.debug(a),
   info: (...a) => p.info(a),

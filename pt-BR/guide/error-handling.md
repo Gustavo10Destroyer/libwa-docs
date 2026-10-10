@@ -1,6 +1,6 @@
 # Tratamento de erros {#error-handling}
 
-O libwa garante que **todo erro que ele lança estende `WhatsAppError`** com um `code` estável e legível por máquina. Classes de erro específicas de provedor nunca chegam ao código da aplicação.
+O libwa.js garante que **todo erro que ele lança estende `WhatsAppError`** com um `code` estável e legível por máquina. Classes de erro específicas de provedor nunca chegam ao código da aplicação.
 
 ## A hierarquia {#the-hierarchy}
 
@@ -45,7 +45,7 @@ import {
   BackendError,
   UnsupportedOperationError,
   ValidationError,
-} from "libwa";
+} from "libwa.js";
 ```
 
 ## Anatomia {#anatomy}
@@ -143,7 +143,7 @@ flowchart TD
 client.on("error", (error) => {
   if (error instanceof PermissionError) return warnUser();
   if (error instanceof MessageError) return retryLater();
-  logger.error({ err: error }, "unhandled libwa error");
+  logger.error({ err: error }, "unhandled libwa.js error");
 });
 ```
 
@@ -213,7 +213,7 @@ Lista mestre dos códigos de `ValidationError`:
 A perda de conexão **não** é um evento `error` — ela chega em `disconnect` com uma [`DisconnectReason`](/pt-BR/reference/disconnect-reason):
 
 ```ts
-import { DisconnectReason, FATAL_DISCONNECT_REASONS } from "libwa";
+import { DisconnectReason, FATAL_DISCONNECT_REASONS } from "libwa.js";
 
 client.on("disconnect", (reason) => {
   if (FATAL_DISCONNECT_REASONS.has(reason)) {
@@ -243,7 +243,7 @@ O logger padrão é `nullLogger` — **a biblioteca não imprime nada**. Dois ca
 | evento `error` | reações programáticas: alertas, métricas, mensagens para o usuário |
 
 ```ts
-import { Client, createConsoleLogger, WhatsAppError } from "libwa";
+import { Client, createConsoleLogger, WhatsAppError } from "libwa.js";
 
 const client = new Client({
   logger: createConsoleLogger("bot"), // "bot error: …"
@@ -269,7 +269,7 @@ try {
   await client.login();
 } catch (error) {
   if (error instanceof AuthenticationError) {
-    console.error("session invalid — delete .libwa/ and re-pair");
+    console.error("session invalid — delete .libwa.js/ and re-pair");
     process.exit(1);
   }
   throw error;

@@ -1,13 +1,13 @@
 # Comandos {#commands}
 
-O libwa traz um sistema completo de comandos: prefixos, aliases, argumentos tipados, guards de escopo e um registry que você pode consultar para construir comandos de ajuda.
+O libwa.js traz um sistema completo de comandos: prefixos, aliases, argumentos tipados, guards de escopo e um registry que você pode consultar para construir comandos de ajuda.
 
 ## Registrando comandos {#registering-commands}
 
 Os comandos ficam em [`client.commands`](/pt-BR/reference/commands) — uma instância de [`CommandRegistry`](/pt-BR/reference/commands#commandregistry):
 
 ```ts
-import { Client } from "libwa";
+import { Client } from "libwa.js";
 
 const client = new Client({ commands: { prefix: ["!", "/"] } });
 
@@ -44,7 +44,7 @@ client.commands.registerAll([
     { name: 'name', type: 'string', description: 'Nome do comando sem prefixo. Comparado sem distinção de maiúsculas: a chave do registry e os nomes parseados são convertidos para minúsculas, enquanto definition.name mantém a caixa original. Padrão (aplicado ao valor em minúsculas): /^[a-z0-9][a-z0-9_-]{0,31}$/ (1-32 caracteres, começa com letra ou dígito).' },
     { name: 'description', type: 'string', def: 'undefined', description: 'Texto curto de ajuda. Livre — a biblioteca nunca renderiza a ajuda para você.' },
     { name: 'aliases', type: 'readonly string[]', def: 'undefined', description: 'Nomes alternativos. Cada um deve passar pelo mesmo padrão de nome e não pode colidir com nenhum comando ou alias existente.' },
-    { name: 'category', type: 'string', def: 'undefined', description: 'Rótulo de agrupamento para suas próprias listas de ajuda. O libwa o armazena, mas não o utiliza.' },
+    { name: 'category', type: 'string', def: 'undefined', description: 'Rótulo de agrupamento para suas próprias listas de ajuda. O libwa.js o armazena, mas não o utiliza.' },
     { name: 'groupOnly', type: 'boolean', def: 'false', description: 'Quando true, execute() roda apenas para interações em chats de grupo.' },
     { name: 'dmOnly', type: 'boolean', def: 'false', description: 'Quando true, execute() roda apenas em chats diretos.' },
     { name: 'execute', type: '(interaction: CommandInteraction) => void | Promise<void>', description: 'Roda quando o comando casa. Rejeições são capturadas e reportadas pelo evento de erro do cliente — o dispatch continua com os listeners interactionCreate.' }
@@ -213,7 +213,7 @@ client.commands.register({
 ```
 
 ::: info Quebras de linha
-`reply` com uma string envia uma mensagem de texto; strings longas são enviadas como estão (o WhatsApp quebra as linhas). O libwa não divide mensagens.
+`reply` com uma string envia uma mensagem de texto; strings longas são enviadas como estão (o WhatsApp quebra as linhas). O libwa.js não divide mensagens.
 :::
 
 ## Resumo da API do registry {#registry-api-summary}

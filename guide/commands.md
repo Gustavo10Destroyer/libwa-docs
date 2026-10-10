@@ -1,13 +1,13 @@
 # Commands
 
-libwa ships a complete command system: prefixes, aliases, typed arguments, scope guards, and a registry you can query to build help commands.
+libwa.js ships a complete command system: prefixes, aliases, typed arguments, scope guards, and a registry you can query to build help commands.
 
 ## Registering commands
 
 Commands live on [`client.commands`](/reference/commands) — a [`CommandRegistry`](/reference/commands#commandregistry) instance:
 
 ```ts
-import { Client } from "libwa";
+import { Client } from "libwa.js";
 
 const client = new Client({ commands: { prefix: ["!", "/"] } });
 
@@ -44,7 +44,7 @@ client.commands.registerAll([
     { name: 'name', type: 'string', description: 'Command name without prefix. Matched case-insensitively: the registry key and parsed names are lowercased, while definition.name keeps its original casing. Pattern (applied to the lowercased value): /^[a-z0-9][a-z0-9_-]{0,31}$/ (1-32 chars, starts with a letter or digit).' },
     { name: 'description', type: 'string', def: 'undefined', description: 'Short help text. Free-form — the library never renders help for you.' },
     { name: 'aliases', type: 'readonly string[]', def: 'undefined', description: 'Alternative names. Each must pass the same name pattern and must not collide with any existing command or alias.' },
-    { name: 'category', type: 'string', def: 'undefined', description: 'Grouping label for your own help listings. libwa stores it but does not use it.' },
+    { name: 'category', type: 'string', def: 'undefined', description: 'Grouping label for your own help listings. libwa.js stores it but does not use it.' },
     { name: 'groupOnly', type: 'boolean', def: 'false', description: 'When true, execute() runs only for interactions in group chats.' },
     { name: 'dmOnly', type: 'boolean', def: 'false', description: 'When true, execute() runs only in direct chats.' },
     { name: 'execute', type: '(interaction: CommandInteraction) => void | Promise<void>', description: 'Runs when the command matches. Rejections are caught and reported through the client error event — dispatch continues with interactionCreate listeners.' }
@@ -213,7 +213,7 @@ client.commands.register({
 ```
 
 ::: info Line breaks
-`reply` with a string sends a text message; long strings are sent as-is (WhatsApp wraps them). libwa does not split messages.
+`reply` with a string sends a text message; long strings are sent as-is (WhatsApp wraps them). libwa.js does not split messages.
 :::
 
 ## Registry API summary

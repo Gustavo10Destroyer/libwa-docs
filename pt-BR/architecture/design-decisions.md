@@ -1,6 +1,6 @@
 # Decisões de design {#design-decisions}
 
-Notas no estilo ADR sobre por que o libwa é do jeito que é. Cada entrada: **contexto → decisão → consequência**.
+Notas no estilo ADR sobre por que o libwa.js é do jeito que é. Cada entrada: **contexto → decisão → consequência**.
 
 ## 1. Interações em vez de mensagens brutas {#_1-interactions-over-raw-messages}
 
@@ -114,7 +114,7 @@ Notas no estilo ADR sobre por que o libwa é do jeito que é. Cada entrada: **co
 - **`exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`** — opcionais públicos são escritos como `field: T | undefined`.
 - **Biome em vez de ESLint+Prettier** — uma ferramenta rápida; formatação com 2 espaços como autoridade.
 - **tsconfig dividido** — a config base faz typecheck de `src` + `tests` + `examples` (sem emit); `tsconfig.build.json` adiciona `rootDir: src`, declarations e sourcemaps para `dist/`.
-- **Examples importam `"libwa"`** (mapeado por paths para `src/index.ts`) para que comp exatamente como código de consumidor; testes importam `src/…` para alcançar internals.
+- **Examples importam `"libwa.js"`** (mapeado por paths para `src/index.ts`) para que comp exatamente como código de consumidor; testes importam `src/…` para alcançar internals.
 
 ## Veja também {#see-also}
 

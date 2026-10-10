@@ -1,6 +1,6 @@
 # Fluxo de trabalho {#workflow}
 
-Comandos diários para desenvolver `libwa` — desde loops rápidos até o gate completo.
+Comandos diários para desenvolver `libwa.js` — desde loops rápidos até o gate completo.
 
 ## Scripts {#scripts}
 
@@ -50,7 +50,7 @@ npm run verify              # o adaptador continua sendo o único importador do 
 **Trabalho na documentação** (este site)
 
 ```bash
-cd ../libwa-docs
+cd ../libwa.js-docs
 npm run dev                 # http://localhost:5173
 npm run build               # bundle de produção
 ```
@@ -78,11 +78,11 @@ Nenhum dos estágios é opcional em `verify`; o repositório trata um estágio c
 
 ## Integração contínua {#continuous-integration}
 
-`.github/workflows/ci.yml` (no repositório libwa) roda o mesmo gate fora de uma laptop: em **pushes para `main`** e em **pull requests** ele faz checkout do repositório, configura **Node 20** (com cache do npm), executa `npm ci` e depois `npm run verify` — typecheck, testes, lint, build, `check:exports`. Não há lógica exclusiva de CI: se `npm run verify` estiver verde localmente, o CI está verde.
+`.github/workflows/ci.yml` (no repositório libwa.js) roda o mesmo gate fora de uma laptop: em **pushes para `main`** e em **pull requests** ele faz checkout do repositório, configura **Node 20** (com cache do npm), executa `npm ci` e depois `npm run verify` — typecheck, testes, lint, build, `check:exports`. Não há lógica exclusiva de CI: se `npm run verify` estiver verde localmente, o CI está verde.
 
 ## Higiene Git (prática do repositório) {#git-hygiene-repo-practice}
 
-- faça stage apenas dos arquivos pretendidos; nunca commit `dist/` ou `.libwa/` (ambos ignorados);
+- faça stage apenas dos arquivos pretendidos; nunca commit `dist/` ou `.libwa.js/` (ambos ignorados);
 - estilo de mensagem: linha curta no imperativo, escopo quando útil (`fix: guard login rejection without listeners`);
 - sem commits durante falhas de `verify` — corrija avançando, não faça amend de commits quebrados.
 

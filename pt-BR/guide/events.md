@@ -5,7 +5,7 @@ O cliente expõe uma superfície de eventos pequena, fechada e totalmente tipada
 ## O mapa de eventos {#the-event-map}
 
 ```ts
-import type { ClientEvents } from "libwa";
+import type { ClientEvents } from "libwa.js";
 
 type ClientEvents = {
   ready: [client: Client];

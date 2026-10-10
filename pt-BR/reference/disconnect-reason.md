@@ -3,7 +3,7 @@
 <ApiBadge kind="enum" /> Motivos de fechamento normalizados emitidos pelos backends e expostos através do evento [`disconnect`](/pt-BR/reference/client-events#disconnect) do client.
 
 ```ts
-import { DisconnectReason, FATAL_DISCONNECT_REASONS } from "libwa";
+import { DisconnectReason, FATAL_DISCONNECT_REASONS } from "libwa.js";
 
 client.on("disconnect", (reason) => {
   if (FATAL_DISCONNECT_REASONS.has(reason)) rePair();

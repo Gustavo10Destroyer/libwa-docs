@@ -4,22 +4,22 @@ Este guia leva você de um diretório vazio a um bot em execução.
 
 ## Requisitos {#requirements}
 
-- **Node.js ≥ 20.0.0** (o libwa é distribuído como um pacote ESM; `package.json` define `"engines": { "node": ">=20.0.0" }`)
+- **Node.js ≥ 20.0.0** (o libwa.js é distribuído como um pacote ESM; `package.json` define `"engines": { "node": ">=20.0.0" }`)
 - Uma conta do WhatsApp para vincular (escaneamento de QR ou código de pareamento)
 - npm (ou pnpm/yarn/bun — os exemplos usam npm)
 
-O próprio libwa é TypeScript/JavaScript puro — nenhum framework é necessário. Qualquer runner funciona: `node`, `tsx`, `ts-node`, bundlers, wrappers serverless etc.
+O próprio libwa.js é TypeScript/JavaScript puro — nenhum framework é necessário. Qualquer runner funciona: `node`, `tsx`, `ts-node`, bundlers, wrappers serverless etc.
 
 ## Instalação {#installation}
 
 ```sh
-npm install libwa
+npm install libwa.js
 ```
 
 Isso traz o provedor Baileys (`@whiskeysockets/baileys`) mais o `better-sqlite3` — o segundo só é carregado se você construir um `SqliteSessionStore`, então um bot comum nunca toca no binding nativo.
 
 ::: tip Trabalhando neste repositório?
-O nome do pacote é `libwa`. Dentro do próprio repositório da biblioteca, `tsconfig.json` mapeia o especificador `libwa` para `src/index.ts` via `paths`, de modo que exemplos e código interno possam importar a superfície pública durante o desenvolvimento. Veja [Convenções de código](/pt-BR/development/conventions).
+O nome do pacote é `libwa.js`. Dentro do próprio repositório da biblioteca, `tsconfig.json` mapeia o especificador `libwa.js` para `src/index.ts` via `paths`, de modo que exemplos e código interno possam importar a superfície pública durante o desenvolvimento. Veja [Convenções de código](/pt-BR/development/conventions).
 :::
 
 ## Seu primeiro bot {#your-first-bot}
@@ -27,7 +27,7 @@ O nome do pacote é `libwa`. Dentro do próprio repositório da biblioteca, `tsc
 Crie `bot.ts`:
 
 ```ts
-import { Client } from "libwa";
+import { Client } from "libwa.js";
 
 const client = new Client({
   logger: console, // qualquer objeto com debug/info/warn/error
@@ -50,7 +50,7 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 client.on("error", (error) => {
-  console.error("libwa error:", error.message);
+  console.error("libwa.js error:", error.message);
 });
 
 try {
@@ -71,7 +71,7 @@ npx tsx bot.ts
 
 O que acontece:
 
-1. `new Client(options)` resolve os padrões (logger silencioso, prefixo `!`, sessões em sistema de arquivos em `.libwa/`, backend Baileys incluso).
+1. `new Client(options)` resolve os padrões (logger silencioso, prefixo `!`, sessões em sistema de arquivos em `.libwa.js/`, backend Baileys incluso).
 2. `client.login()` cria a conexão com o backend e retorna uma promise.
 3. O backend emite uma atualização `connecting` carregando um **payload de QR** → seu listener `qr` dispara.
 4. Você escaneia o QR no telefone. O WhatsApp vincula o dispositivo.
@@ -83,10 +83,10 @@ O que acontece:
 :::
 
 ::: warning AuthenticationError em uma sessão anterior?
-`loggedOut` / `badSession` / um pareamento interrompido (ex.: uma tentativa de código de pareamento que nunca foi concluída no telefone) deixa um **arquivo obsoleto em `.libwa/`**. `login()` então rejeita com `AuthenticationError` — nenhuma tentativa vai resolver. Limpe o slot e pare novamente:
+`loggedOut` / `badSession` / um pareamento interrompido (ex.: uma tentativa de código de pareamento que nunca foi concluída no telefone) deixa um **arquivo obsoleto em `.libwa.js/`**. `login()` então rejeita com `AuthenticationError` — nenhuma tentativa vai resolver. Limpe o slot e pare novamente:
 
 ```sh
-rm -rf .libwa     # ou chame await client.logout() no código
+rm -rf .libwa.js     # ou chame await client.logout() no código
 ```
 :::
 
@@ -105,7 +105,7 @@ process.on("SIGINT", () => {
 Em vez de escanear um QR, solicite um código de pareamento e digite-o no telefone em **WhatsApp → Aparelhos vinculados → Vincular aparelho**:
 
 ```ts
-import { Client } from "libwa";
+import { Client } from "libwa.js";
 
 const client = new Client({
   auth: { pairingPhoneNumber: "5511999999999" }, // internacional, apenas dígitos, sem "+"
@@ -146,11 +146,11 @@ Agora `!ping` (e `!p`) em qualquer chat responde `pong`. Comandos são explicado
 No primeiro login, o [`FileSessionStore`](/pt-BR/reference/sessions#filesessionstore) padrão escreve:
 
 ```text
-.libwa/
+.libwa.js/
 └── default.json     ← um arquivo JSON por slot de sessão
 ```
 
-Adicione `.libwa/` ao `.gitignore` (o repositório já faz isso). Apagar a pasta força um novo pareamento. Nunca a compartilhe: ela *é* a sessão logada.
+Adicione `.libwa.js/` ao `.gitignore` (o repositório já faz isso). Apagar a pasta força um novo pareamento. Nunca a compartilhe: ela *é* a sessão logada.
 
 Em produção, troque a store de sistema de arquivos pela [`SqliteSessionStore`](/pt-BR/reference/sessions#sqlitesessionstore) — um único arquivo de banco resistente a crashes guarda todos os slots:
 
@@ -166,9 +166,9 @@ Seja qual for a store escolhida, desligá-la é com você: chame `store.close()`
 my-bot/
 ├── src/
 │   └── index.ts        # ponto de entrada
-├── package.json        # dependência: libwa
+├── package.json        # dependência: libwa.js
 ├── tsconfig.json
-└── .libwa/             # arquivos de sessão (ignorados pelo git)
+└── .libwa.js/             # arquivos de sessão (ignorados pelo git)
 ```
 
 ## Próximos passos {#next-steps}
@@ -181,11 +181,11 @@ my-bot/
 
 ## Ambiente de desenvolvimento (para contribuidores) {#development-environment-for-contributors}
 
-Se você está mexendo no próprio libwa:
+Se você está mexendo no próprio libwa.js:
 
 ```sh
 git clone <repository>
-cd libwa
+cd libwa.js
 npm install
 npm run verify     # typecheck → test → lint → build → check:exports
 npm test           # o modo watch é `npm run test:watch`

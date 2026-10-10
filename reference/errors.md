@@ -3,7 +3,7 @@
 <ApiBadge kind="class" /> One hierarchy: every library failure extends `WhatsAppError`, carries a stable `code`, and may preserve the provider error as `cause`. Provider error classes never reach application code.
 
 ```ts
-import { WhatsAppError, ValidationError, toError } from "libwa";
+import { WhatsAppError, ValidationError, toError } from "libwa.js";
 
 try {
   await client.login();

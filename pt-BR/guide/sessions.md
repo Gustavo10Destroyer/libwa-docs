@@ -1,6 +1,6 @@
 # Sessões e login {#sessions-login}
 
-Uma **sessão** é o estado de login persistido que permite ao seu bot voltar ao ar sem escanear um QR de novo. O libwa mantém as sessões independentes do provedor: o core armazena um blob opaco; apenas o backend dono o interpreta.
+Uma **sessão** é o estado de login persistido que permite ao seu bot voltar ao ar sem escanear um QR de novo. O libwa.js mantém as sessões independentes do provedor: o core armazena um blob opaco; apenas o backend dono o interpreta.
 
 ## O modelo de sessão {#the-session-model}
 
@@ -34,9 +34,9 @@ Regras:
 ### FileSessionStore (padrão) {#filesessionstore-default}
 
 ```ts
-import { Client, FileSessionStore } from "libwa";
+import { Client, FileSessionStore } from "libwa.js";
 
-new Client(); // → new FileSessionStore() → diretório ".libwa"
+new Client(); // → new FileSessionStore() → diretório ".libwa.js"
 new Client({ sessionStore: new FileSessionStore({ directory: ".sessions/work" }) });
 ```
 
@@ -56,7 +56,7 @@ new Client({ sessionStore: new FileSessionStore({ directory: ".sessions/work" })
 ### SqliteSessionStore (produção) {#sqlitesessionstore-production}
 
 ```ts
-import { Client, SqliteSessionStore } from "libwa";
+import { Client, SqliteSessionStore } from "libwa.js";
 
 const store = new SqliteSessionStore({ filename: "var/bot.db" });
 const sales = new Client({ sessionStore: store, sessionId: "sales" });
@@ -66,21 +66,21 @@ await Promise.all([sales.login(), support.login()]);
 // no encerramento:
 await sales.destroy();
 await support.destroy();
-store.close(); // você é dono do handle — o libwa nunca o fecha
+store.close(); // você é dono do handle — o libwa.js nunca o fecha
 ```
 
 Um único arquivo de banco de dados guarda todos os slots. Prefira-o à store de arquivo assim que as sessões importarem: modo WAL mais `synchronous = FULL` significa que a última escrita de credencial sobrevive a uma queda de energia, um `busy_timeout` deixa um segundo processo (uma ferramenta de migração, uma segunda instância) bloquear em vez de dar erro, e cada save é um único upsert transacional.
 
-- Opções: `filename` (padrão `libwa-sessions.db`; diretórios pais ausentes são criados) e `busyTimeoutMs` (padrão `5000`).
+- Opções: `filename` (padrão `libwa.js-sessions.db`; diretórios pais ausentes são criados) e `busyTimeoutMs` (padrão `5000`).
 - Os ids são validados exatamente como no `FileSessionStore`; uma linha com tipos de coluna errados → `ERR_SESSION_CORRUPT`.
 - Usada depois de `close()` → `ERR_SESSION_STORE`, assim bugs de encerramento falham de forma evidente.
-- A versão do schema vive no `PRAGMA user_version`: um banco escrito por um libwa mais novo é recusado em vez de ser aberto com um schema que esta build não entende.
-- Suportada por `better-sqlite3`, carregada de forma lazy — `import "libwa"` nunca toca no binding nativo. Uma instalação feita com `--ignore-scripts` falha com `ERR_SESSION_STORE` e instruções, não com um crash de carregamento.
+- A versão do schema vive no `PRAGMA user_version`: um banco escrito por um libwa.js mais novo é recusado em vez de ser aberto com um schema que esta build não entende.
+- Suportada por `better-sqlite3`, carregada de forma lazy — `import "libwa.js"` nunca toca no binding nativo. Uma instalação feita com `--ignore-scripts` falha com `ERR_SESSION_STORE` e instruções, não com um crash de carregamento.
 
 ### MemorySessionStore (testes / efêmera) {#memorysessionstore-tests-ephemeral}
 
 ```ts
-import { MemorySessionStore } from "libwa";
+import { MemorySessionStore } from "libwa.js";
 
 const store = new MemorySessionStore(); // as sessões desaparecem ao sair do processo
 ```
@@ -90,7 +90,7 @@ const store = new MemorySessionStore(); // as sessões desaparecem ao sair do pr
 ### Traga a sua própria store {#bring-your-own}
 
 ```ts
-import type { Session, SessionStore } from "libwa";
+import type { Session, SessionStore } from "libwa.js";
 
 const redisStore: SessionStore = {
   async load(id) {
@@ -106,7 +106,7 @@ const redisStore: SessionStore = {
 };
 ```
 
-Expectativas: `save` deve persistir `data` sem perda (bytes!); `load` retorna `null` para as ausentes; `clear` é idempotente. Todo o resto (filas, validação) é problema da sua store. Se a sua store mantém um socket ou uma conexão, adicione o opcional `close(): Promise<void> | void` — o libwa nunca o chama, então chame você mesmo no encerramento.
+Expectativas: `save` deve persistir `data` sem perda (bytes!); `load` retorna `null` para as ausentes; `clear` é idempotente. Todo o resto (filas, validação) é problema da sua store. Se a sua store mantém um socket ou uma conexão, adicione o opcional `close(): Promise<void> | void` — o libwa.js nunca o chama, então chame você mesmo no encerramento.
 
 ## O que há dentro do blob (Baileys) {#what-s-inside-the-blob-baileys}
 
@@ -226,9 +226,9 @@ await client.destroy();
 
 ## Higiene de sessão {#session-hygiene}
 
-- **`.libwa/` (e `*.db`) é sensível** — ele autentica a sua conta. Adicione ao `.gitignore`, nunca faça commit, nunca compartilhe. O SQLite também pode deixar arquivos `-wal` / `-shm` ao lado do banco; eles pertencem ao mesmo segredo.
+- **`.libwa.js/` (e `*.db`) é sensível** — ele autentica a sua conta. Adicione ao `.gitignore`, nunca faça commit, nunca compartilhe. O SQLite também pode deixar arquivos `-wal` / `-shm` ao lado do banco; eles pertencem ao mesmo segredo.
 - **Rotacionando dispositivos**: o WhatsApp pode revogar sessões remotamente → a próxima conexão resulta em `DisconnectReason.LoggedOut` → evento `disconnect`, sem retry. Apague o slot e refaça o pareamento.
-- **Apagar o slot** (`rm .libwa/default.json` ou `sessionStore.clear(id)`) força um login novo.
+- **Apagar o slot** (`rm .libwa.js/default.json` ou `sessionStore.clear(id)`) força um login novo.
 - **Slot corrompido**: a biblioteca falha com `ValidationError` dizendo para limpá-lo — corrija apagando o arquivo/linha, não editando o JSON à mão.
 - **Encerramento**: `await client.destroy()` primeiro (para de escrever), depois `store.close()` se você estiver usando `SqliteSessionStore`.
 

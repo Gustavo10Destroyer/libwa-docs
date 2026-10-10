@@ -3,7 +3,7 @@
 <ApiBadge kind="interface" /> `MessageContent` é uma união discriminada que descreve tudo o que uma mensagem pode carregar. Conteúdo de mídia sempre inclui um `Attachment` baixável; conteúdo de texto nunca inclui.
 
 ```ts
-import type { MessageContent, TextContent } from "libwa";
+import type { MessageContent, TextContent } from "libwa.js";
 
 function describe(c: MessageContent): string {
   switch (c.kind) {

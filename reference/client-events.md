@@ -3,8 +3,8 @@
 <ApiBadge kind="interface" /> The closed, provider-independent event map consumed by [`client.on / once / off`](/reference/client#on-once-off). Listener arguments are fully inferred from the event name.
 
 ```ts
-import type { ClientEvents } from "libwa";
-import type { Client, DisconnectReason, Interaction } from "libwa";
+import type { ClientEvents } from "libwa.js";
+import type { Client, DisconnectReason, Interaction } from "libwa.js";
 
 type ClientEvents = {
   ready: [client: Client];
@@ -130,7 +130,7 @@ client.on("qr", (qr) => console.log(qr)); // render / pipe to a scanner
   ]"
 />
 
-**When:** the backend reports `status: "connecting"` with a `qr` while unauthenticated. libwa forwards every QR it receives — even during pairing flows, so in pairing mode ignore `qr` and wait for `pairingCode`. **Attach before `login()`.**
+**When:** the backend reports `status: "connecting"` with a `qr` while unauthenticated. libwa.js forwards every QR it receives — even during pairing flows, so in pairing mode ignore `qr` and wait for `pairingCode`. **Attach before `login()`.**
 
 ### `pairingCode`
 
@@ -163,7 +163,7 @@ client.on("pairingCode", (code) => console.log(code)); // show to the user, conf
 ## Full example
 
 ```ts
-import { Client, DisconnectReason, type Interaction } from "libwa";
+import { Client, DisconnectReason, type Interaction } from "libwa.js";
 
 const client = new Client();
 

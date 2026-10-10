@@ -1,6 +1,6 @@
 # Examples
 
-The repository ships three runnable examples under `examples/`. They are type-checked as part of `npm run typecheck` and import the public surface exactly like consumer code (`import … from "libwa"`).
+The repository ships three runnable examples under `examples/`. They are type-checked as part of `npm run typecheck` and import the public surface exactly like consumer code (`import … from "libwa.js"`).
 
 ::: tip How to run them
 Examples are TypeScript files. From the library repository:
@@ -43,7 +43,7 @@ client.on("interactionCreate", (interaction: Interaction) => {
   void interaction.reply(`You said: ${interaction.text}`);
 });
 
-client.on("error", (error) => console.error("libwa error:", error.message));
+client.on("error", (error) => console.error("libwa.js error:", error.message));
 client.on("disconnect", (reason) => console.warn(`Disconnected (${reason}).`));
 ```
 
@@ -209,7 +209,7 @@ client.on("error", (error) => {
 
 client.on("disconnect", (reason) => {
   if (reason === DisconnectReason.LoggedOut) {
-    console.error("Session revoked — delete .libwa/ and log in again.");
+    console.error("Session revoked — delete .libwa.js/ and log in again.");
   }
 });
 ```
@@ -225,7 +225,7 @@ Key points:
 Not in the repository, but assembled from documented APIs:
 
 ```ts
-import { Client, type Interaction } from "libwa";
+import { Client, type Interaction } from "libwa.js";
 
 const client = new Client({
   sessionId: process.env.BOT_SESSION ?? "default",
@@ -234,7 +234,7 @@ const client = new Client({
   logger: console, // swap for pino/winston adapter
 });
 
-client.on("error", (error) => console.error("[libwa]", error.message));
+client.on("error", (error) => console.error("[libwa.js]", error.message));
 client.on("disconnect", (reason) => {
   console.error("disconnected:", reason);
   if (reason === "loggedOut") process.exit(1); // orchestrator restarts after session reset
@@ -270,7 +270,7 @@ await client.login();
 ## Recipe: interaction-kind router
 
 ```ts
-import type { Client, Interaction } from "libwa";
+import type { Client, Interaction } from "libwa.js";
 
 type Handler = (i: Interaction) => void | Promise<void>;
 const routes = new Map<string, Handler>();

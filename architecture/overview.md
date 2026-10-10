@@ -1,6 +1,6 @@
 # Architecture overview
 
-libwa is a small core with a **hard boundary around provider code**. Everything above the seam is provider-free; the only code allowed to import `@whiskeysockets/baileys` lives in `src/backend/baileys/`.
+libwa.js is a small core with a **hard boundary around provider code**. Everything above the seam is provider-free; the only code allowed to import `@whiskeysockets/baileys` lives in `src/backend/baileys/`.
 
 ```mermaid
 flowchart TD

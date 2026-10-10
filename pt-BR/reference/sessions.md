@@ -3,7 +3,7 @@
 <ApiBadge kind="interface" /> Persistência de autenticação. O core trata os bytes da sessão como opacos — apenas o backend os interpreta. As stores são plugáveis: arquivo, SQLite, memória ou a sua própria (Redis, SQL, nuvem).
 
 ```ts
-import { Client, FileSessionStore, SqliteSessionStore, MemorySessionStore, type SessionStore } from "libwa";
+import { Client, FileSessionStore, SqliteSessionStore, MemorySessionStore, type SessionStore } from "libwa.js";
 
 new Client({ sessionStore: new FileSessionStore({ directory: "/var/lib/bot" }) });
 new Client({ sessionStore: new SqliteSessionStore({ filename: "var/bots.db" }) }); // produção
@@ -39,7 +39,7 @@ interface SessionStore {
 | `load` | Retorna a sessão ou `null` quando nenhuma existe (ausente ≠ erro). |
 | `save` | Persiste por `session.id`; deve ser seguro sob chamadas concorrentes para o mesmo id. |
 | `clear` | Remove o slot; limpar um slot ausente **não** é um erro. |
-| `close` | Opcional. Libera recursos do sistema operacional (descritores de arquivo, conexões de banco). libwa **nunca** o chama — quem criou a store é dono dele. |
+| `close` | Opcional. Libera recursos do sistema operacional (descritores de arquivo, conexões de banco). libwa.js **nunca** o chama — quem criou a store é dono dele. |
 
 Os backends chamam `load`/`save`/`clear` por meio de `ClientOptions.sessionStore`; `client.logout()` limpa o slot. O `close()` é de você chamar no encerramento (veja [Escolhendo uma store](#choosing-a-store)).
 
@@ -65,7 +65,7 @@ A store padrão. Um arquivo JSON por slot: `<directory>/<id>.json`.
 
 ```ts
 interface FileSessionStoreOptions {
-  directory?: string; // padrão ".libwa"
+  directory?: string; // padrão ".libwa.js"
 }
 ```
 
@@ -80,8 +80,8 @@ interface FileSessionStoreOptions {
 | JSON corrompido | `load()` → `ValidationError` `ERR_SESSION_CORRUPT` (com `cause`) |
 
 ```ts
-const store = new FileSessionStore({ directory: ".libwa" });
-store.directory; // ".libwa"
+const store = new FileSessionStore({ directory: ".libwa.js" });
+store.directory; // ".libwa.js"
 await store.load("default");     // Session | null
 await store.clear("default");    // semântica de rm -f, sem throw quando ausente
 ```
@@ -103,7 +103,7 @@ class SqliteSessionStore implements SessionStore {
 A store de produção: **um único banco SQLite contendo todos os slots**. As credenciais sobrevivem a reinícios, vários processos de bot podem compartilhar um mesmo deploy, e mover o bot significa copiar um arquivo em vez de uma árvore de diretórios.
 
 ```ts
-import { Client, SqliteSessionStore } from "libwa";
+import { Client, SqliteSessionStore } from "libwa.js";
 
 const store = new SqliteSessionStore({ filename: "/var/lib/bot/bot.db" });
 const alice = new Client({ sessionStore: store, sessionId: "alice" });
@@ -119,7 +119,7 @@ store.close();
 
 ```ts
 interface SqliteSessionStoreOptions {
-  filename?: string;      // padrão "libwa-sessions.db"; URIs ":memory:" e "file:…" também funcionam
+  filename?: string;      // padrão "libwa.js-sessions.db"; URIs ":memory:" e "file:…" também funcionam
   busyTimeoutMs?: number; // padrão 5000 — quanto tempo um escritor espera por um lock
 }
 ```
@@ -136,7 +136,7 @@ Diretórios pai ausentes são criados sob demanda. `busyTimeoutMs` deve ser um i
 | Ids seguros | toda operação executa `assertSafeSessionId()` primeiro (veja abaixo) |
 | Slot ausente | `load()` → `null` |
 | Linha corrompida | `load()` → `ValidationError` `ERR_SESSION_CORRUPT` (com `cause`) |
-| Compatível com versões futuras | versão do schema armazenada em `PRAGMA user_version`; um banco escrito por um libwa **mais novo** é recusado em vez de migrado para trás |
+| Compatível com versões futuras | versão do schema armazenada em `PRAGMA user_version`; um banco escrito por um libwa.js **mais novo** é recusado em vez de migrado para trás |
 | Diretório pai ausente | criado (semântica de `mkdir -p`) |
 
 Schema, mantido intencionalmente mínimo:
@@ -160,9 +160,9 @@ store.close();  // descarrega e libera o handle; seguro chamar duas vezes
 store.closed;   // true
 ```
 
-O `close()` **não** é chamado pelo libwa: `Client.destroy()` nunca fecha uma store que ele não criou, então quem criou a store é dono do handle (chame `close()` no seu hook de encerramento). Toda operação após `close()` lança `ValidationError` `ERR_SESSION_STORE`, então uma store usada além do encerramento falha de forma evidente em vez de reabrir o arquivo pelas suas costas.
+O `close()` **não** é chamado pelo libwa.js: `Client.destroy()` nunca fecha uma store que ele não criou, então quem criou a store é dono do handle (chame `close()` no seu hook de encerramento). Toda operação após `close()` lança `ValidationError` `ERR_SESSION_STORE`, então uma store usada além do encerramento falha de forma evidente em vez de reabrir o arquivo pelas suas costas.
 
-> **Driver nativo.** A store é baseada em `better-sqlite3`, uma dependência normal do libwa que é carregada **de forma lazy** — importar `libwa` nunca toca o binding nativo, então uma build quebrada não pode quebrar o resto da biblioteca. Se sua instalação rodou com `npm install --ignore-scripts`, construir uma store lança `ERR_SESSION_STORE` dizendo para você reinstalar sem essa flag.
+> **Driver nativo.** A store é baseada em `better-sqlite3`, uma dependência normal do libwa.js que é carregada **de forma lazy** — importar `libwa.js` nunca toca o binding nativo, então uma build quebrada não pode quebrar o resto da biblioteca. Se sua instalação rodou com `npm install --ignore-scripts`, construir uma store lança `ERR_SESSION_STORE` dizendo para você reinstalar sem essa flag.
 
 ## MemorySessionStore <ApiBadge kind="class" /> {#memorysessionstore}
 
@@ -190,17 +190,17 @@ Compartilhada por `FileSessionStore` e `SqliteSessionStore`; `MemorySessionStore
 
 | Store | Persistência | Concorrência | Regras de id | Uso |
 | --- | --- | --- | --- | --- |
-| `FileSessionStore` (padrão) | disco `.libwa/<id>.json` | atômico + fila por slot | validado | bots pequenos em nó único |
+| `FileSessionStore` (padrão) | disco `.libwa.js/<id>.json` | atômico + fila por slot | validado | bots pequenos em nó único |
 | `SqliteSessionStore` | um banco em modo WAL | transações SQLite + busy-timeout | validado | **produção** — durabilidade, muitos slots, multiprocesso |
 | `MemorySessionStore` | nenhuma | trivial | nenhuma | testes, demos |
 | personalizada | sua | seu contrato | seu | Redis/multi-node/SQL gerenciado |
 
-> **Fechando uma store.** `SqliteSessionStore.close()` (e qualquer `close()` que a sua própria store acrescente ao `SessionStore.close` opcional) é chamado por **você**, no encerramento — libwa nunca fecha um handle que não criou. A store de arquivo padrão não precisa de teardown.
+> **Fechando uma store.** `SqliteSessionStore.close()` (e qualquer `close()` que a sua própria store acrescente ao `SessionStore.close` opcional) é chamado por **você**, no encerramento — libwa.js nunca fecha um handle que não criou. A store de arquivo padrão não precisa de teardown.
 
 Esboço de store personalizada:
 
 ```ts
-import type { Session, SessionStore } from "libwa";
+import type { Session, SessionStore } from "libwa.js";
 
 interface WireSession {
   id: string;

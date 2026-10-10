@@ -3,7 +3,7 @@
 <ApiBadge kind="class" /> Todo evento recebido que a biblioteca entende é normalizado em uma subclasse da classe abstrata `Interaction`. Este é o único tipo de payload de evento que seus handlers veem.
 
 ```ts
-import type { Interaction } from "libwa";
+import type { Interaction } from "libwa.js";
 
 client.on("interactionCreate", (i) => {
   if (i.isCommand()) console.log(i.name, i.args);
@@ -147,7 +147,7 @@ if (i.isMessage() && i.isImage()) {
 | Método | Assinatura | Descrição |
 | --- | --- | --- |
 | `react` | `(emoji: string \| null) => Promise<void>` | Adiciona (`"👍"`) ou limpa (`null`) a sua própria reação. |
-| `delete` | `() => Promise<void>` | Apaga esta mensagem — sem checagem de posse no libwa (ex.: administradores de grupo apagando mensagens de outros). |
+| `delete` | `() => Promise<void>` | Apaga esta mensagem — sem checagem de posse no libwa.js (ex.: administradores de grupo apagando mensagens de outros). |
 | `edit` | `(text: string) => Promise<Message>` | Edita a **sua própria** mensagem; retorna a `Message` atualizada. |
 | `reply` | herdado | Responde no mesmo chat. |
 

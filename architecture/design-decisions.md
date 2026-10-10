@@ -1,6 +1,6 @@
 # Design decisions
 
-ADR-style notes on why libwa is shaped the way it is. Each entry: **context → decision → consequence**.
+ADR-style notes on why libwa.js is shaped the way it is. Each entry: **context → decision → consequence**.
 
 ## 1. Interactions over raw messages
 
@@ -114,7 +114,7 @@ ADR-style notes on why libwa is shaped the way it is. Each entry: **context → 
 - **`exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`** — public optionals are written `field: T | undefined`.
 - **Biome over ESLint+Prettier** — one fast tool; 2-space formatting authoritative.
 - **tsconfig split** — base config typechecks `src` + `tests` + `examples` (no emit); `tsconfig.build.json` adds `rootDir: src`, declarations, sourcemaps for `dist/`.
-- **Examples import `"libwa"`** (paths-mapped to `src/index.ts`) so they compile exactly like consumer code; tests import `src/…` to reach internals.
+- **Examples import `"libwa.js"`** (paths-mapped to `src/index.ts`) so they compile exactly like consumer code; tests import `src/…` to reach internals.
 
 ## See also
 

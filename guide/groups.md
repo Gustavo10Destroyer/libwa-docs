@@ -157,7 +157,7 @@ After a successful rename/description update, cached metadata is patched immedia
 
 ### The event: `interactionCreate`
 
-Every group interaction — membership changes, metadata changes, plain group messages — arrives on the single [`interactionCreate`](/guide/events) event. libwa's event set is deliberately closed: there is **no** separate `groupAdd`/`groupRemove`/`groupPromote` event. Register one listener and filter with the type guards:
+Every group interaction — membership changes, metadata changes, plain group messages — arrives on the single [`interactionCreate`](/guide/events) event. libwa.js's event set is deliberately closed: there is **no** separate `groupAdd`/`groupRemove`/`groupPromote` event. Register one listener and filter with the type guards:
 
 ```ts
 client.on("interactionCreate", async (i) => {
@@ -313,7 +313,7 @@ client.on("interactionCreate", (i) => {
 });
 ```
 
-Description clears are normalized: the provider sends `desc: null`, libwa maps it to `changes.description === undefined` with the key **present** (`"description" in changes` is `true` — key presence, not value).
+Description clears are normalized: the provider sends `desc: null`, libwa.js maps it to `changes.description === undefined` with the key **present** (`"description" in changes` is `true` — key presence, not value).
 
 A `groupUpdate` whose diff against the cached metadata is empty is dropped before dispatch, so listeners never see a no-op update.
 
@@ -471,7 +471,7 @@ if (user) {
 Profile data rides the same ids, each behind its own optional capability: `client.users.pictureUrl(id, type?)` (profile picture URL, `undefined` when absent or private), `client.users.about(id)` (bio/status text) and `client.users.accountType(id)` (`"standard" | "business"`). They accept the same id forms as `fetch`; see [UserService](/reference/entities#userservice) for errors.
 
 ::: tip Contact-list names are not synced
-The name **you** saved in your phone's contact book ("Mom", "Ana — work") lives on your device and is **not** part of libwa's six normalized events — it cannot be read from a `User`. Use WhatsApp profile names (above) or keep your own `UserId → name` map. Group participants may carry a provider-supplied name on `GroupMetadata.participants[].name`, but it is commonly `undefined` with the Baileys backend; `displayName` always falls back gracefully (name → phone → id).
+The name **you** saved in your phone's contact book ("Mom", "Ana — work") lives on your device and is **not** part of libwa.js's six normalized events — it cannot be read from a `User`. Use WhatsApp profile names (above) or keep your own `UserId → name` map. Group participants may carry a provider-supplied name on `GroupMetadata.participants[].name`, but it is commonly `undefined` with the Baileys backend; `displayName` always falls back gracefully (name → phone → id).
 :::
 
 ## Announce-only (admin) groups
@@ -485,12 +485,12 @@ if (group.announceOnly && !i.author?.isMe) {
 }
 ```
 
-libwa deliberately does **not** ship a permissions engine: metadata tells you *what is*, your code decides *what to do*. A group-only command guard (`groupOnly: true`) covers the common case.
+libwa.js deliberately does **not** ship a permissions engine: metadata tells you *what is*, your code decides *what to do*. A group-only command guard (`groupOnly: true`) covers the common case.
 
 ## A complete group-aware command
 
 ```ts
-import { Client, NotFoundError, PermissionError, type CommandInteraction } from "libwa";
+import { Client, NotFoundError, PermissionError, type CommandInteraction } from "libwa.js";
 
 const client = new Client({ commands: { prefix: "!" } });
 

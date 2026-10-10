@@ -321,7 +321,7 @@ Both carry `messageId`, `reference` (the prompt, when quoted), and reply with a 
 ## Full worked example
 
 ```ts
-import { type Interaction, Client } from "libwa";
+import { type Interaction, Client } from "libwa.js";
 
 const client = new Client({ commands: { prefix: "!" } });
 

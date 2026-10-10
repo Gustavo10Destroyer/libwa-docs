@@ -4,22 +4,22 @@ This guide takes you from an empty directory to a running bot.
 
 ## Requirements
 
-- **Node.js ≥ 20.0.0** (libwa ships as an ESM package; `package.json` sets `"engines": { "node": ">=20.0.0" }`)
+- **Node.js ≥ 20.0.0** (libwa.js ships as an ESM package; `package.json` sets `"engines": { "node": ">=20.0.0" }`)
 - A WhatsApp account to link (QR scan or pairing code)
 - npm (or pnpm/yarn/bun — examples use npm)
 
-libwa itself is plain TypeScript/JavaScript — no framework required. Any runner works: `node`, `tsx`, `ts-node`, bundlers, serverless wrappers, etc.
+libwa.js itself is plain TypeScript/JavaScript — no framework required. Any runner works: `node`, `tsx`, `ts-node`, bundlers, serverless wrappers, etc.
 
 ## Installation
 
 ```sh
-npm install libwa
+npm install libwa.js
 ```
 
 This pulls in the Baileys provider (`@whiskeysockets/baileys`) plus `better-sqlite3` — the second only loads if you construct a `SqliteSessionStore`, so a plain bot never touches the native binding.
 
 ::: tip Working from this repository?
-The package name is `libwa`. Inside the library's own repository, `tsconfig.json` maps the specifier `libwa` to `src/index.ts` via `paths`, so examples and internal code can import the public surface while developing. See [Coding conventions](/development/conventions).
+The package name is `libwa.js`. Inside the library's own repository, `tsconfig.json` maps the specifier `libwa.js` to `src/index.ts` via `paths`, so examples and internal code can import the public surface while developing. See [Coding conventions](/development/conventions).
 :::
 
 ## Your first bot
@@ -27,7 +27,7 @@ The package name is `libwa`. Inside the library's own repository, `tsconfig.json
 Create `bot.ts`:
 
 ```ts
-import { Client } from "libwa";
+import { Client } from "libwa.js";
 
 const client = new Client({
   logger: console, // any object with debug/info/warn/error
@@ -50,7 +50,7 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 client.on("error", (error) => {
-  console.error("libwa error:", error.message);
+  console.error("libwa.js error:", error.message);
 });
 
 try {
@@ -71,7 +71,7 @@ npx tsx bot.ts
 
 What happens:
 
-1. `new Client(options)` resolves defaults (silent logger, `!` prefix, filesystem sessions in `.libwa/`, bundled Baileys backend).
+1. `new Client(options)` resolves defaults (silent logger, `!` prefix, filesystem sessions in `.libwa.js/`, bundled Baileys backend).
 2. `client.login()` creates the backend connection and returns a promise.
 3. The backend emits a `connecting` update carrying a **QR payload** → your `qr` listener fires.
 4. You scan the QR on the phone. WhatsApp links the device.
@@ -83,10 +83,10 @@ What happens:
 :::
 
 ::: warning AuthenticationError on a previous session?
-`loggedOut` / `badSession` / an interrupted pairing (e.g. a pairing-code attempt that was never completed on the phone) leaves a **stale file in `.libwa/`**. `login()` then rejects with `AuthenticationError` — no retry will fix it. Clear the slot and pair again:
+`loggedOut` / `badSession` / an interrupted pairing (e.g. a pairing-code attempt that was never completed on the phone) leaves a **stale file in `.libwa.js/`**. `login()` then rejects with `AuthenticationError` — no retry will fix it. Clear the slot and pair again:
 
 ```sh
-rm -rf .libwa     # or call await client.logout() in code
+rm -rf .libwa.js     # or call await client.logout() in code
 ```
 :::
 
@@ -105,7 +105,7 @@ process.on("SIGINT", () => {
 Instead of scanning a QR, request a pairing code and enter it on the phone under **WhatsApp → Linked devices → Link a device**:
 
 ```ts
-import { Client } from "libwa";
+import { Client } from "libwa.js";
 
 const client = new Client({
   auth: { pairingPhoneNumber: "5511999999999" }, // international, digits only, no "+"
@@ -146,11 +146,11 @@ Now `!ping` (and `!p`) in any chat replies `pong`. Commands are explained fully 
 On first login the default [`FileSessionStore`](/reference/sessions#filesessionstore) writes:
 
 ```text
-.libwa/
+.libwa.js/
 └── default.json     ← one JSON file per session slot
 ```
 
-Commit `.libwa/` to `.gitignore` (the repository already does). Deleting the folder forces a fresh pairing. Never share it: it *is* the logged-in session.
+Commit `.libwa.js/` to `.gitignore` (the repository already does). Deleting the folder forces a fresh pairing. Never share it: it *is* the logged-in session.
 
 In production, swap the filesystem store for [`SqliteSessionStore`](/reference/sessions#sqlitesessionstore) — one crash-safe database file holds every slot:
 
@@ -166,9 +166,9 @@ Whatever store you choose, it is yours to tear down: call `store.close()` yourse
 my-bot/
 ├── src/
 │   └── index.ts        # entry point
-├── package.json        # dependency: libwa
+├── package.json        # dependency: libwa.js
 ├── tsconfig.json
-└── .libwa/             # session files (gitignored)
+└── .libwa.js/             # session files (gitignored)
 ```
 
 ## Next steps
@@ -181,11 +181,11 @@ my-bot/
 
 ## Development environment (for contributors)
 
-If you are hacking on libwa itself:
+If you are hacking on libwa.js itself:
 
 ```sh
 git clone <repository>
-cd libwa
+cd libwa.js
 npm install
 npm run verify     # typecheck → test → lint → build → check:exports
 npm test           # watch mode is `npm run test:watch`

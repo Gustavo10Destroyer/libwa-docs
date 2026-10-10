@@ -19,7 +19,7 @@ const sent = await client.messages.send(target, content, options?);
 | chat id `string` | Chats conhecidos reutilizam a instância em cache; ids desconhecidos criam um chat de kind `"unknown"` que é atualizado quando dados melhores chegam. |
 
 ```ts
-import { Client } from "libwa";
+import { Client } from "libwa.js";
 
 const client = new Client();
 
@@ -194,7 +194,7 @@ O mapper coloca mensagens citadas em cache sinteticamente quando chegam inline, 
 ## Exemplo completo {#complete-example}
 
 ```ts
-import { Client } from "libwa";
+import { Client } from "libwa.js";
 
 const client = new Client();
 

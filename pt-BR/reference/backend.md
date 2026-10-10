@@ -3,8 +3,8 @@
 <ApiBadge kind="interface" /> `WhatsAppBackend` é o contrato de adaptador de provedor — a costura que esconde o Baileys (ou qualquer provedor futuro). O core não depende de mais nada.
 
 ```ts
-import type { WhatsAppBackend } from "libwa";
-import { createDefaultBackend, createBaileysBackend } from "libwa";
+import type { WhatsAppBackend } from "libwa.js";
+import { createDefaultBackend, createBaileysBackend } from "libwa.js";
 
 new Client({ backend: createBaileysBackend({ syncFullHistory: false }) });
 ```
@@ -218,7 +218,7 @@ O adaptador do Baileys embutido (`id: "baileys"`). A classe em si é privada do 
 
 <ApiTable
   :rows="[
-    { name: 'browser', type: 'readonly [name: string, version: string, platform: string]', def: '[&quot;libwa&quot;, &quot;1.0.0&quot;, &quot;1&quot;]', description: 'Identidade de navegador exibida no celular em Linked devices.' },
+    { name: 'browser', type: 'readonly [name: string, version: string, platform: string]', def: '[&quot;libwa.js&quot;, &quot;1.0.0&quot;, &quot;1&quot;]', description: 'Identidade de navegador exibida no celular em Linked devices.' },
     { name: 'syncFullHistory', type: 'boolean', def: 'false', description: 'Pede ao WhatsApp o histórico completo de chats no login — normalmente indesejado para bots.' }
   ]"
 />
@@ -232,7 +232,7 @@ Os internos do adaptador (mapeamento, auth, classificação de desconexão) fica
 ## Implementando um backend {#implementing-a-backend}
 
 ```ts
-import type { WhatsAppBackend, BackendEventMap, Unsubscribe } from "libwa";
+import type { WhatsAppBackend, BackendEventMap, Unsubscribe } from "libwa.js";
 import { TypedEventEmitter } from "./emitter.js"; // seu próprio emitter (não exportado)
 
 class MyBackend implements WhatsAppBackend {

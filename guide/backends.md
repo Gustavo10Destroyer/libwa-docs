@@ -1,6 +1,6 @@
 # Backends
 
-A **backend** adapts a concrete WhatsApp provider to libwa's normalized domain. The core depends only on the [`WhatsAppBackend`](/reference/backend#whatsappbackend) interface, which is what makes providers swappable — and testable — without touching application code.
+A **backend** adapts a concrete WhatsApp provider to libwa.js's normalized domain. The core depends only on the [`WhatsAppBackend`](/reference/backend#whatsappbackend) interface, which is what makes providers swappable — and testable — without touching application code.
 
 ## Bundled backends
 
@@ -10,7 +10,7 @@ A **backend** adapts a concrete WhatsApp provider to libwa's normalized domain. 
 | [`createBaileysBackend(options?)`](/reference/backend#createbaileysbackend) | `baileys` | Explicit construction with [`BaileysBackendOptions`](/reference/backend#baileysbackendoptions). |
 
 ```ts
-import { Client, createBaileysBackend } from "libwa";
+import { Client, createBaileysBackend } from "libwa.js";
 
 const client = new Client({
   backend: createBaileysBackend({
@@ -24,8 +24,8 @@ const client = new Client({
 
 <ApiTable
   :rows="[
-    { name: 'browser', type: 'readonly [name: string, version: string, platform: string]', def: '[&quot;libwa&quot;, &quot;1.0.0&quot;, &quot;1&quot;]', description: 'Browser identity used while logging in — visible on the phone under Linked devices.' },
-    { name: 'syncFullHistory', type: 'boolean', def: 'false', description: 'Ask the phone for full chat history on login. libwa still dispatches only live (notify) messages regardless.' }
+    { name: 'browser', type: 'readonly [name: string, version: string, platform: string]', def: '[&quot;libwa.js&quot;, &quot;1.0.0&quot;, &quot;1&quot;]', description: 'Browser identity used while logging in — visible on the phone under Linked devices.' },
+    { name: 'syncFullHistory', type: 'boolean', def: 'false', description: 'Ask the phone for full chat history on login. libwa.js still dispatches only live (notify) messages regardless.' }
   ]"
 />
 
@@ -155,14 +155,14 @@ import type {
   GroupMetadata,
   Unsubscribe,
   WhatsAppBackend,
-} from "libwa";
+} from "libwa.js";
 
 type Listener = (...args: never[]) => unknown;
 
 class MyBackend implements WhatsAppBackend {
   readonly id = "my-backend";
 
-  // Minimal event bus — TypedEventEmitter exists in libwa but is internal,
+  // Minimal event bus — TypedEventEmitter exists in libwa.js but is internal,
   // so a private map of listeners keeps the example self-contained.
   #listeners = new Map<BackendEventName, Set<Listener>>();
   #connected = false;

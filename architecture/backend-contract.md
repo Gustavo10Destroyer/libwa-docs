@@ -83,7 +83,7 @@ Five modules plus an `index.ts` barrel, one public factory (`createBaileysBacken
 Adapter defaults:
 
 ```ts
-const DEFAULT_BROWSER = ["libwa", "1.0.0", "1"];
+const DEFAULT_BROWSER = ["libwa.js", "1.0.0", "1"];
 const RAW_CACHE_LIMIT = 500;
 const GROUP_META_CACHE_LIMIT = 512;
 // syncFullHistory: false → shouldSyncHistoryMessage: () => false, emitOwnEvents: false

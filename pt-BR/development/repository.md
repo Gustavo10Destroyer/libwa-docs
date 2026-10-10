@@ -1,9 +1,9 @@
 # Repositório {#repository}
 
-Layout do repositório da biblioteca `libwa` — onde tudo fica e por quê.
+Layout do repositório da biblioteca `libwa.js` — onde tudo fica e por quê.
 
 ```
-libwa/
+libwa.js/
 ├── src/                 código-fonte da biblioteca (ESM, TypeScript)
 │   ├── index.ts         ← o ÚNICO entry público (package exports ".")
 │   ├── Client.ts        raiz de composição, ciclo de vida, dispatch
@@ -22,7 +22,7 @@ libwa/
 │   ├── logging/         contrato Logger + loggers console/null
 │   └── core/            ids, content union, DisconnectReason, LruMap, sequence
 ├── tests/               suites do vitest + helpers (MockBackend, fixtures)
-├── examples/            exemplos com typecheck no estilo de consumidor ("libwa" import)
+├── examples/            exemplos com typecheck no estilo de consumidor ("libwa.js" import)
 ├── scripts/
 │   ├── check-exports.mjs   guard de vazamento da API pública (roda no `verify`)
 │   └── clean-dist.mjs      apaga `dist/` antes de cada build
@@ -39,14 +39,14 @@ libwa/
 
 | Item | Valor |
 | --- | --- |
-| nome do pacote | `libwa` (v0.4.0, MIT, ESM, Node ≥ 20.0.0) |
+| nome do pacote | `libwa.js` (v0.4.0, MIT, ESM, Node ≥ 20.0.0) |
 | dependências de runtime | `@whiskeysockets/baileys` + `better-sqlite3` (carregado de forma lazy, apenas por `SqliteSessionStore`) |
 | superfície pública | `exports`: `.` → `dist/index.d.ts` + `dist/index.js` (declarado sob `types`, `import`, `require` e `default`), além de `./package.json` |
 | arquivos publicados | `dist`, `docs`, `LICENSE` (README incluído automaticamente) |
 | executor de testes | vitest (`tests/**/*.test.ts`, ambiente node) |
 | linter/formatter | biome |
 | build | `node scripts/clean-dist.mjs && tsc -p tsconfig.build.json` (limpa `dist/`, depois declarations + sourcemaps) |
-| estilo de import | testes → caminhos `src/…`; exemplos → `"libwa"` (tsconfig paths → `src/index.ts`) |
+| estilo de import | testes → caminhos `src/…`; exemplos → `"libwa.js"` (tsconfig paths → `src/index.ts`) |
 
 ## Inventário do código-fonte {#source-inventory}
 
@@ -95,7 +95,7 @@ Helpers: `MockBackend` / `CapableMockBackend` (299 linhas — o contrato obrigat
 | `pairing-login.ts` | fluxo de código de pareamento com `WA_PHONE_NUMBER` |
 | `middleware-filters.ts` | rate limit, deny-list de chat, boas-vindas de entrada em grupo, classes de erro, tratamento de `DisconnectReason` |
 
-Todos importam `"libwa"` exatamente como código de consumidor e são cobertos pelo `npm run typecheck`.
+Todos importam `"libwa.js"` exatamente como código de consumidor e são cobertos pelo `npm run typecheck`.
 
 ## Comandos {#commands}
 

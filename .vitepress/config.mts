@@ -1,8 +1,8 @@
 import { defineConfig, type DefaultTheme } from "vitepress";
 import { withMermaid } from "vitepress-plugin-mermaid";
 
-/** GitHub Pages project-site base path (repo: Gustavo10Destroyer/libwa-docs). */
-const BASE = "/libwa-docs/";
+/** GitHub Pages project-site base path (repo: Gustavo10Destroyer/libwa.js-docs). */
+const BASE = "/libwa.js-docs/";
 
 /** Locale directory that is not the root (English lives at the site root). */
 const PT = "pt-BR";
@@ -83,7 +83,7 @@ const GUIDE: readonly Item[] = [
     ],
   },
   {
-    text: ["Extending libwa", "Estendendo o libwa"],
+    text: ["Extending libwa.js", "Estendendo o libwa.js"],
     collapsed: false,
     items: [
       { text: ["Backends", "Backends"], link: "/guide/backends" },
@@ -244,21 +244,21 @@ const SEARCH_TRANSLATIONS_PT = {
 };
 
 /**
- * VitePress configuration for the libwa documentation site.
+ * VitePress configuration for the libwa.js documentation site.
  *
  * Information architecture (identical in both locales — the Portuguese tree
  * lives under /pt-BR/ and mirrors every English path):
  *   /                — landing page
  *   /guide/          — task-oriented guides (install, features, workflows)
- *   /reference/      — exhaustive API reference (every export of `libwa`)
+ *   /reference/      — exhaustive API reference (every export of `libwa.js`)
  *   /architecture/   — internal design, data flows, decision records
  *   /development/    — contributor workflow, tooling, conventions
- *   /CHANGELOG       — versioned release notes for the libwa package
+ *   /CHANGELOG       — versioned release notes for the libwa.js package
  *   /troubleshooting — diagnosing common failures
  */
 export default withMermaid(
   defineConfig({
-    title: "libwa",
+    title: "libwa.js",
     description:
       "Interaction-driven WhatsApp bot library for TypeScript — discord.js-style DX on a pluggable backend.",
     lang: "en-US",
@@ -280,7 +280,7 @@ export default withMermaid(
         label: "Português (Brasil)",
         lang: "pt-BR",
         link: `${PT_PREFIX}/`,
-        title: "libwa",
+        title: "libwa.js",
         description:
           "Biblioteca de bots de WhatsApp orientada a interações para TypeScript — experiência de desenvolvimento no estilo discord.js sobre um backend substituível.",
         markdown: {
@@ -316,7 +316,7 @@ export default withMermaid(
           },
           footer: {
             message:
-              "Documentação do libwa — licença MIT · Totalmente vibe-coded: ChatGPT (orquestração) + MiMo-V2.6-Flash (implementação)",
+              "Documentação do libwa.js — licença MIT · Totalmente vibe-coded: ChatGPT (orquestração) + MiMo-V2.6-Flash (implementação)",
             copyright: "Copyright © 2026 Gustavo10Destroyer",
           },
         },
@@ -327,7 +327,7 @@ export default withMermaid(
       ["link", { rel: "icon", type: "image/svg+xml", href: `${BASE}favicon.svg` }],
       ["meta", { name: "theme-color", content: "#059669" }],
       ["meta", { name: "og:type", content: "website" }],
-      ["meta", { name: "og:title", content: "libwa documentation" }],
+      ["meta", { name: "og:title", content: "libwa.js documentation" }],
       [
         "meta",
         {
@@ -348,8 +348,8 @@ export default withMermaid(
     mermaid: { theme: "neutral" },
 
     themeConfig: {
-      logo: { src: "/logo.svg", alt: "libwa" },
-      siteTitle: "libwa",
+      logo: { src: "/logo.svg", alt: "libwa.js" },
+      siteTitle: "libwa.js",
 
       nav: navFor("en"),
       sidebar: sidebarFor("en"),
@@ -383,7 +383,7 @@ export default withMermaid(
 
       footer: {
         message:
-          "libwa documentation — MIT licensed · Entirely vibe-coded: ChatGPT (orchestration) + MiMo-V2.6-Flash (implementation)",
+          "libwa.js documentation — MIT licensed · Entirely vibe-coded: ChatGPT (orchestration) + MiMo-V2.6-Flash (implementation)",
         copyright: "Copyright © 2026 Gustavo10Destroyer",
       },
     },

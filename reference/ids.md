@@ -3,8 +3,8 @@
 <ApiBadge kind="type" /> Identifier and utility types shared across the whole API. All are plain strings at runtime — loggable, storable, comparable.
 
 ```ts
-import type { ChatId, UserId, Unsubscribe } from "libwa";
-import { phoneFromId } from "libwa";
+import type { ChatId, UserId, Unsubscribe } from "libwa.js";
+import { phoneFromId } from "libwa.js";
 ```
 
 ## `ChatId`
